@@ -67,6 +67,12 @@ Window {
             win.currentPolite = polite
             win.currentSource = sourceText
             win.currentTargetLang = targetLang
+            if (backend.autoCopyOutgoing && translation.length > 0) {
+                win.copyDone = true
+                copyResetTimer.restart()
+            } else {
+                win.copyDone = false
+            }
         }
         function onOutgoingFailed(message) {
             win.loading = false
@@ -197,6 +203,8 @@ Window {
                         placeholderText: "하고 싶은 말을 입력하세요…"
                         placeholderTextColor: Theme.textMuted
                         color: Theme.textPrimary
+                        selectionColor: Theme.primaryContainer
+                        selectedTextColor: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                         verticalAlignment: TextInput.AlignVCenter
@@ -229,8 +237,8 @@ Window {
 
                     // Tone chip (monochrome icon + label)
                     Rectangle {
-                        height: 34
-                        width: toneRow.implicitWidth + 20
+                        Layout.preferredHeight: 34
+                        Layout.preferredWidth: toneRow.implicitWidth + 20
                         radius: Theme.radiusFull
                         color: toneMa.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
                         border.width: 1
@@ -266,8 +274,8 @@ Window {
 
                     // Target language chip (monochrome globe icon + lang)
                     Rectangle {
-                        height: 34
-                        width: langRow.implicitWidth + 20
+                        Layout.preferredHeight: 34
+                        Layout.preferredWidth: langRow.implicitWidth + 20
                         radius: Theme.radiusFull
                         color: langMa.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
                         border.width: 1
@@ -301,10 +309,49 @@ Window {
                         }
                     }
 
+                    // Auto-copy toggle chip
+                    Rectangle {
+                        Layout.preferredHeight: 34
+                        Layout.preferredWidth: acRow.implicitWidth + 18
+                        radius: Theme.radiusFull
+                        color: backend.autoCopyOutgoing
+                            ? Theme.primaryContainer
+                            : (acMa.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh)
+                        border.width: 1
+                        border.color: backend.autoCopyOutgoing ? Theme.primary : Theme.borderSubtle
+                        Row {
+                            id: acRow
+                            anchors.centerIn: parent
+                            spacing: 5
+                            MonoIcon {
+                                width: 13
+                                height: 13
+                                name: backend.autoCopyOutgoing ? "check" : "copy"
+                                iconColor: backend.autoCopyOutgoing ? Theme.textOnPrimaryContainer : Theme.textMuted
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "자동복사"
+                                color: backend.autoCopyOutgoing ? Theme.textOnPrimaryContainer : Theme.textSecondary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                        MouseArea {
+                            id: acMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: backend.setAutoCopyOutgoing(!backend.autoCopyOutgoing)
+                        }
+                    }
+
                     // Send circle button (Gemini ↑ style)
                     Rectangle {
-                        width: 42
-                        height: 42
+                        Layout.preferredWidth: 42
+                        Layout.preferredHeight: 42
                         radius: 21
                         property bool ready: inputField.text.trim().length > 0
                         color: ready ? Theme.primary : Theme.surfaceContainerHigh
@@ -433,8 +480,8 @@ Window {
 
                     // Primary Speak button (Filled Pill)
                     Rectangle {
-                        height: 36
-                        width: speakRow.implicitWidth + 26
+                        Layout.preferredHeight: 36
+                        Layout.preferredWidth: speakRow.implicitWidth + 26
                         radius: Theme.radiusFull
                         color: backend.ttsPlaying ? Theme.primaryContainer : Theme.primary
                         opacity: speakMa.containsMouse ? 0.92 : 1.0
@@ -473,8 +520,8 @@ Window {
 
                     // Copy icon button
                     Rectangle {
-                        height: 36
-                        width: win.copyDone ? copyRow.implicitWidth + 20 : 36
+                        Layout.preferredHeight: 36
+                        Layout.preferredWidth: win.copyDone ? copyRow.implicitWidth + 20 : 36
                         radius: 18
                         color: copyMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
                         Row {
@@ -512,8 +559,8 @@ Window {
 
                     // Retry icon button
                     Rectangle {
-                        width: 36
-                        height: 36
+                        Layout.preferredWidth: 36
+                        Layout.preferredHeight: 36
                         radius: 18
                         color: retryMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
                         MonoIcon {
@@ -540,8 +587,8 @@ Window {
                     // Tone suggestion chips
                     Rectangle {
                         visible: win.currentCasual.length > 0
-                        height: 32
-                        width: casTxt.implicitWidth + 22
+                        Layout.preferredHeight: 32
+                        Layout.preferredWidth: casTxt.implicitWidth + 22
                         radius: Theme.radiusFull
                         color: casMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
                         border.width: 1
@@ -569,8 +616,8 @@ Window {
 
                     Rectangle {
                         visible: win.currentPolite.length > 0
-                        height: 32
-                        width: polTxt.implicitWidth + 22
+                        Layout.preferredHeight: 32
+                        Layout.preferredWidth: polTxt.implicitWidth + 22
                         radius: Theme.radiusFull
                         color: polMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
                         border.width: 1
@@ -613,7 +660,7 @@ Window {
                 id: hintRow
                 anchors.centerIn: parent
                 spacing: 14
-                Text { text: "Enter 번역"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
+                Text { text: backend.autoCopyOutgoing ? "Enter 번역·복사" : "Enter 번역"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
                 Text { text: "Ctrl+Enter 번역 + 바로 송출"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
                 Text { text: "Esc 게임으로 복귀"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
             }

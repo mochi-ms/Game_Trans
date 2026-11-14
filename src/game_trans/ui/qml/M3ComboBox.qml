@@ -13,6 +13,7 @@ ComboBox {
         id: del
         width: root.width
         height: 36
+        text: root.textAt(index)
         highlighted: root.highlightedIndex === index
 
         contentItem: Row {
@@ -71,6 +72,9 @@ ComboBox {
         selectByMouse: true
         font: root.font
         color: Theme.textPrimary
+        placeholderTextColor: Theme.textMuted
+        selectionColor: Theme.primaryContainer
+        selectedTextColor: Theme.textPrimary
         verticalAlignment: Text.AlignVCenter
         background: Item {}
         onAccepted: root.accepted()

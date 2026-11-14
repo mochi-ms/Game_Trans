@@ -87,6 +87,8 @@ class Overlay:
     caption_duration_s: int = 6
     max_captions: int = 4
     show_original: bool = True
+    show_outgoing_in_feed: bool = True
+    auto_copy_outgoing: bool = True
     reduce_motion: bool = False
     click_through: bool = False
     offset_x: int = 0

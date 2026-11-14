@@ -80,6 +80,7 @@ Window {
             captionModel.insert(0, {
                 segId: segId,
                 status: "listening",
+                isMine: false,
                 lang: "",
                 original: "",
                 translation: "",
@@ -107,6 +108,7 @@ Window {
                     captionModel.set(i, {
                         segId: segId,
                         status: "ready",
+                        isMine: false,
                         lang: lang,
                         original: orig,
                         translation: trans,
@@ -125,11 +127,33 @@ Window {
             captionModel.insert(0, {
                 segId: segId,
                 status: "ready",
+                isMine: false,
                 lang: lang,
                 original: orig,
                 translation: trans,
                 confidence: conf,
                 timeText: timeNow
+            })
+            win.enforceFeedCap()
+            if (keepView) {
+                win.unseenNewCount += 1
+            } else {
+                feedList.positionViewAtBeginning()
+                win.unseenNewCount = 0
+            }
+        }
+        function onOutgoingReady(translation, pronunciation, casual, polite, sourceText, targetLang) {
+            if (!backend.showOutgoingInFeed || translation.length === 0) return
+            var keepView = win.scrolledDown
+            captionModel.insert(0, {
+                segId: 0,
+                status: "ready",
+                isMine: true,
+                lang: targetLang || backend.effectivePartnerLang,
+                original: sourceText,
+                translation: translation,
+                confidence: 1.0,
+                timeText: win.formatNow()
             })
             win.enforceFeedCap()
             if (keepView) {
@@ -446,7 +470,9 @@ Window {
                                 anchors.left: parent.left
                                 anchors.leftMargin: 5
                                 anchors.verticalCenter: parent.verticalCenter
-                                color: status === "ready" ? Theme.primary : Theme.success
+                                color: isMine
+                                    ? Theme.success
+                                    : (status === "ready" ? Theme.primary : Theme.success)
                             }
 
                             ColumnLayout {
@@ -509,12 +535,18 @@ Window {
                                         Layout.preferredWidth: langTxt.implicitWidth + 10
                                         Layout.preferredHeight: 17
                                         radius: 8.5
-                                        color: card.isNewest ? Theme.primaryContainer : Theme.surfaceContainerHigh
+                                        color: isMine
+                                            ? Qt.rgba(129 / 255, 201 / 255, 149 / 255, 0.22)
+                                            : (card.isNewest ? Theme.primaryContainer : Theme.surfaceContainerHigh)
                                         Text {
                                             id: langTxt
                                             anchors.centerIn: parent
-                                            text: lang.toUpperCase() + " → " + backend.myLanguage.toUpperCase()
-                                            color: card.isNewest ? Theme.textOnPrimaryContainer : Theme.textSecondary
+                                            text: isMine
+                                                ? ("나 → " + lang.toUpperCase())
+                                                : (lang.toUpperCase() + " → " + backend.myLanguage.toUpperCase())
+                                            color: isMine
+                                                ? Theme.success
+                                                : (card.isNewest ? Theme.textOnPrimaryContainer : Theme.textSecondary)
                                             font.family: Theme.fontFamily
                                             font.pixelSize: 10
                                             font.weight: Font.DemiBold

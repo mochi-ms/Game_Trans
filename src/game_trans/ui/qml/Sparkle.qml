@@ -10,6 +10,9 @@ Canvas {
     onSolidColorChanged: requestPaint()
     onWidthChanged: requestPaint()
     onHeightChanged: requestPaint()
+    onVisibleChanged: if (visible) requestPaint()
+    onAvailableChanged: if (available) requestPaint()
+    Component.onCompleted: requestPaint()
 
     onPaint: {
         var ctx = getContext("2d")

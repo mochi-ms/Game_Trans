@@ -20,6 +20,7 @@ from ..audio.capture import (
     ProcessLoopbackCapture,
     compute_rms_level,
     find_game_pid,
+    list_audio_processes,
 )
 from ..audio.output import VirtualMicOutput, list_output_devices, refresh_audio_devices
 from ..audio.vad import VadSegmenter
@@ -131,6 +132,7 @@ class Backend(QObject):
         self._history: list[dict[str, str]] = []
         self._test_caption_seq = 0
         self._quota_errors_recent: deque[float] = deque(maxlen=10)
+        self._running_processes: list[str] = []
 
         # Window tracking
         self._caption_win = None
@@ -165,6 +167,7 @@ class Backend(QObject):
     # ------------------------------------------------------------------ startup / shutdown
 
     def start_background(self) -> None:
+        self.refreshRunningProcesses()
         if self._worker_task is None:
             self._worker_task = self.loop.create_task(self._listen_worker())
         if self._api_key and self.cfg.general.auto_listen_on_game_start:
@@ -336,6 +339,18 @@ class Backend(QObject):
     def vadBackend(self) -> str:
         return self._vad.backend_name
 
+    @Property(str, notify=stateChanged)
+    def vadPreset(self) -> str:
+        if self.cfg.audio.silence_end_ms <= 320:
+            return "fast"
+        if self.cfg.audio.silence_end_ms >= 680:
+            return "sentence"
+        return "balanced"
+
+    @Property("QVariantList", notify=devicesChanged)
+    def runningProcesses(self) -> list[str]:
+        return self._running_processes
+
     @Property(float, notify=audioLevelChanged)
     def audioLevel(self) -> float:
         return self._audio_level
@@ -371,6 +386,14 @@ class Backend(QObject):
     @Property(bool, notify=overlayLayoutChanged)
     def showOriginal(self) -> bool:
         return self.cfg.overlay.show_original
+
+    @Property(bool, notify=overlayLayoutChanged)
+    def showOutgoingInFeed(self) -> bool:
+        return self.cfg.overlay.show_outgoing_in_feed
+
+    @Property(bool, notify=overlayLayoutChanged)
+    def autoCopyOutgoing(self) -> bool:
+        return self.cfg.overlay.auto_copy_outgoing
 
     @Property(bool, notify=overlayLayoutChanged)
     def reduceMotion(self) -> bool:
@@ -518,6 +541,7 @@ class Backend(QObject):
 
     @Slot()
     def openSettings(self) -> None:
+        self.refreshRunningProcesses()
         self.settingsOpen = True
 
     @Slot()
@@ -704,6 +728,45 @@ class Backend(QObject):
                 self._stop_listening()
                 self._start_listening()
 
+    @Slot()
+    def refreshRunningProcesses(self) -> None:
+        try:
+            self._running_processes = [name for _pid, name in list_audio_processes()]
+        except Exception as e:  # noqa: BLE001
+            log.debug("Failed listing processes: %s", e)
+            self._running_processes = []
+        self.devicesChanged.emit()
+
+    @Slot(str)
+    def addTargetProcess(self, proc: str) -> None:
+        cleaned = proc.strip()
+        if not cleaned:
+            return
+        existing = {p.lower() for p in self.cfg.audio.target_processes}
+        if cleaned.lower() in existing:
+            self.show_toast(f"{cleaned} 은(는) 이미 대상에 포함되어 있어요")
+            return
+        self.cfg.audio.target_processes = [*self.cfg.audio.target_processes, cleaned]
+        save_config(self.cfg)
+        self.stateChanged.emit()
+        if self._listening:
+            self._stop_listening()
+            self._start_listening()
+        self.show_toast(f"{cleaned} 추가됨")
+
+    @Slot(str)
+    def setVadPreset(self, preset: str) -> None:
+        presets = {
+            "fast": (180, 280),
+            "balanced": (300, 450),
+            "sentence": (300, 750),
+        }
+        min_ms, sil_ms = presets.get(preset, (300, 450))
+        self.cfg.audio.min_speech_ms = min_ms
+        self.cfg.audio.silence_end_ms = sil_ms
+        save_config(self.cfg)
+        self.stateChanged.emit()
+
     @Slot(bool)
     def setBgmSuppression(self, val: bool) -> None:
         self.cfg.audio.bgm_suppression = val
@@ -731,6 +794,18 @@ class Backend(QObject):
     @Slot(bool)
     def setShowOriginal(self, val: bool) -> None:
         self.cfg.overlay.show_original = val
+        save_config(self.cfg)
+        self.overlayLayoutChanged.emit()
+
+    @Slot(bool)
+    def setShowOutgoingInFeed(self, val: bool) -> None:
+        self.cfg.overlay.show_outgoing_in_feed = val
+        save_config(self.cfg)
+        self.overlayLayoutChanged.emit()
+
+    @Slot(bool)
+    def setAutoCopyOutgoing(self, val: bool) -> None:
+        self.cfg.overlay.auto_copy_outgoing = val
         save_config(self.cfg)
         self.overlayLayoutChanged.emit()
 
@@ -980,8 +1055,13 @@ class Backend(QObject):
     def _on_vad_segment(self, seg: Segment) -> None:
         self.loop.call_soon_threadsafe(self._enqueue_segment, seg)
 
+    @staticmethod
+    def _should_skip_segment(seg: Segment) -> bool:
+        """Drop tiny clicks/silence tails before spending a Gemini API request."""
+        return seg.duration_s < 0.28 or compute_rms_level(seg.pcm16) < 0.008
+
     def _enqueue_segment(self, seg: Segment) -> None:
-        if not self._listening:
+        if not self._listening or self._should_skip_segment(seg):
             return
         # Latest-first queue bounded to 3 items so captions never drift behind real time
         while len(self._seg_deque) >= 3:
@@ -1000,6 +1080,14 @@ class Backend(QObject):
                     self.captionDismissed.emit(seg.id)
                     continue
                 self.captionTranslating.emit(seg.id)
+                waited_notice = False
+                if self.cfg.ai.mode == "cloud":
+                    wait_s = self.gemini.limiter.wait_time()
+                    if wait_s >= 1.2:
+                        waited_notice = True
+                        self._status_level = "warn"
+                        self._status_text = f"한도 대기 · {max(1, round(wait_s))}초"
+                        self.stateChanged.emit()
                 try:
                     caption = await self._process_segment(seg)
                 except QuotaExceeded:
@@ -1008,6 +1096,9 @@ class Backend(QObject):
                     continue
                 except Exception:
                     log.exception("Listen error")
+                    if waited_notice:
+                        self._refresh_status()
+                        self.stateChanged.emit()
                     self.captionDismissed.emit(seg.id)
                     continue
 
@@ -1028,6 +1119,9 @@ class Backend(QObject):
                     self.usageChanged.emit()
                     self._check_budget_guard()
                 else:
+                    if waited_notice:
+                        self._refresh_status()
+                        self.stateChanged.emit()
                     self.captionDismissed.emit(seg.id)
             self._seg_event.clear()
 
@@ -1106,6 +1200,10 @@ class Backend(QObject):
 
         self._last_outgoing_text = res.translation
         self._last_outgoing_lang = res.target_lang
+        if self.cfg.overlay.auto_copy_outgoing and res.translation:
+            cb = QGuiApplication.clipboard()
+            if cb is not None:
+                cb.setText(res.translation)
         self.outgoingReady.emit(
             res.translation,
             res.pronunciation,

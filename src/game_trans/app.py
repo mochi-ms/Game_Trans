@@ -4,8 +4,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import sys
+from collections.abc import Callable
 from pathlib import Path
+
+os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
 
 import qasync
 from PySide6.QtCore import Qt
@@ -17,8 +21,10 @@ from PySide6.QtGui import (
     QLinearGradient,
     QPainter,
     QPainterPath,
+    QPalette,
     QPixmap,
 )
+from PySide6.QtNetwork import QLocalServer, QLocalSocket
 from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
@@ -29,6 +35,7 @@ from .platform.hotkeys import HotkeyManager
 from .ui.bridge import Backend
 
 log = logging.getLogger(__name__)
+_SINGLE_INSTANCE_NAME = "GameTransSingleInstance_v1"
 
 
 def _create_sparkle_icon() -> QIcon:
@@ -95,11 +102,96 @@ def _register_hotkeys(hotkeys: HotkeyManager, backend: Backend, cfg) -> None:
         hotkeys.register(f"Ctrl+Shift+{i}", lambda idx=i - 1: backend.triggerQuickPhrase(idx))
 
 
+def _apply_dark_theme(app: QApplication) -> None:
+    """Force dark palette and Qt color scheme so Windows light theme never leaks black text."""
+    try:
+        app.styleHints().setColorScheme(Qt.ColorScheme.Dark)
+    except Exception as exc:  # noqa: BLE001
+        log.debug("setColorScheme Dark unsupported: %s", exc)
+
+    pal = QPalette()
+    pal.setColor(QPalette.ColorRole.Window, QColor("#131314"))
+    pal.setColor(QPalette.ColorRole.WindowText, QColor("#E3E3E3"))
+    pal.setColor(QPalette.ColorRole.Base, QColor("#1E1F20"))
+    pal.setColor(QPalette.ColorRole.AlternateBase, QColor("#282A2C"))
+    pal.setColor(QPalette.ColorRole.ToolTipBase, QColor("#282A2C"))
+    pal.setColor(QPalette.ColorRole.ToolTipText, QColor("#E3E3E3"))
+    pal.setColor(QPalette.ColorRole.Text, QColor("#E3E3E3"))
+    pal.setColor(QPalette.ColorRole.Button, QColor("#1E1F20"))
+    pal.setColor(QPalette.ColorRole.ButtonText, QColor("#E3E3E3"))
+    pal.setColor(QPalette.ColorRole.BrightText, QColor("#FFFFFF"))
+    pal.setColor(QPalette.ColorRole.PlaceholderText, QColor("#8E918F"))
+    pal.setColor(QPalette.ColorRole.Highlight, QColor("#004A77"))
+    pal.setColor(QPalette.ColorRole.HighlightedText, QColor("#E3E3E3"))
+    pal.setColor(QPalette.ColorRole.Link, QColor("#A8C7FA"))
+    app.setPalette(pal)
+
+
+def _notify_existing_instance(server_name: str = _SINGLE_INSTANCE_NAME) -> bool:
+    sock = QLocalSocket()
+    sock.connectToServer(server_name)
+    if not sock.waitForConnected(250):
+        return False
+    sock.write(b"WAKE_SETTINGS\n")
+    sock.flush()
+    sock.waitForBytesWritten(250)
+    sock.disconnectFromServer()
+    return True
+
+
+def _start_single_instance_server(
+    on_wake: Callable[[], None],
+    server_name: str = _SINGLE_INSTANCE_NAME,
+) -> QLocalServer:
+    QLocalServer.removeServer(server_name)
+    server = QLocalServer()
+
+    def _accept() -> None:
+        while server.hasPendingConnections():
+            conn = server.nextPendingConnection()
+            if conn is not None:
+                conn.waitForReadyRead(100)
+                conn.close()
+                conn.deleteLater()
+                on_wake()
+
+    server.newConnection.connect(_accept)
+    if not server.listen(server_name):
+        log.warning("Could not listen on local single-instance server %s", server_name)
+    return server
+
+
 def _create_tray(app: QApplication, icon: QIcon, backend: Backend, cfg) -> QSystemTrayIcon:
     tray = QSystemTrayIcon(icon, app)
     tray.setToolTip(f"Game Trans v{__version__}")
 
     menu = QMenu()
+    menu.setStyleSheet(
+        """
+        QMenu {
+            background-color: #1E1F20;
+            color: #E3E3E3;
+            border: 1px solid #3C4043;
+            border-radius: 8px;
+            padding: 6px 4px;
+        }
+        QMenu::item {
+            padding: 7px 18px;
+            border-radius: 5px;
+            color: #E3E3E3;
+            background-color: transparent;
+        }
+        QMenu::item:selected {
+            background-color: #282A2C;
+            color: #A8C7FA;
+        }
+        QMenu::separator {
+            height: 1px;
+            background-color: #3C4043;
+            margin: 4px 10px;
+        }
+        """
+    )
     act_input = QAction(f"입력 바 열기 ({cfg.hotkeys.toggle_input})", menu)
     act_input.triggered.connect(backend.openComposer)
     menu.addAction(act_input)
@@ -143,6 +235,11 @@ def run() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Game Trans")
     app.setQuitOnLastWindowClosed(False)
+    _apply_dark_theme(app)
+
+    if _notify_existing_instance():
+        log.info("Existing Game Trans instance notified; exiting duplicate launch")
+        return 0
 
     QFont.insertSubstitutions("Pretendard", ["Malgun Gothic", "Segoe UI", "Noto Sans KR"])
     app.setFont(QFont("Pretendard", 10))
@@ -178,10 +275,13 @@ def run() -> int:
     hotkeys = HotkeyManager(app)
     _register_hotkeys(hotkeys, backend, cfg)
     tray = _create_tray(app, icon, backend, cfg)
-    _keepalive = (tray, hotkeys)  # prevent GC
+    single_server = _start_single_instance_server(
+        lambda: (backend.openSettings(), backend.show_toast("이미 실행 중이라 설정 창을 열었습니다"))
+    )
+    _keepalive = (tray, hotkeys, single_server)  # prevent GC
 
     backend.start_background()
-    app.aboutToQuit.connect(lambda: (hotkeys.unregister_all(), backend.shutdown()))
+    app.aboutToQuit.connect(lambda: (single_server.close(), hotkeys.unregister_all(), backend.shutdown()))
 
     with loop:
         return loop.run_forever()

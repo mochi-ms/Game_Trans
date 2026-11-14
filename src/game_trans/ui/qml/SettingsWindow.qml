@@ -9,9 +9,9 @@ Window {
     title: "Game Trans – 설정"
     color: Theme.surface
     width: 1060
-    height: 700
+    height: 790
     minimumWidth: 900
-    minimumHeight: 580
+    minimumHeight: 620
     flags: Qt.Window
 
     property int section: backend.hasApiKey ? 1 : 0
@@ -390,6 +390,8 @@ Window {
                                         placeholderText: "AIza... API 키를 붙여넣으세요"
                                         placeholderTextColor: Theme.textMuted
                                         color: Theme.textPrimary
+                                        selectionColor: Theme.primaryContainer
+                                        selectedTextColor: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 13
                                         verticalAlignment: TextInput.AlignVCenter
@@ -584,11 +586,12 @@ Window {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 14
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 2
-                                    Text { text: "한글 발음 표기"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
-                                    Text { text: "번역문 아래에 읽는 법(발음)을 함께 표시"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "한글 발음 표기"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "번역문 아래에 읽는 법(발음)을 함께 표시"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
                                 }
                                 M3Switch {
                                     checked: backend.showPronunciation
@@ -598,11 +601,12 @@ Window {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 14
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 2
-                                    Text { text: "로컬 STT 모드 (faster-whisper)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
-                                    Text { text: "켜면 오디오 대신 텍스트만 Gemini로 번역 (한도 극소화 · [local] 옵션 패키지 필요)"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "로컬 STT 모드 (faster-whisper)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "켜면 오디오 대신 텍스트만 Gemini로 번역 (한도 극소화 · [local] 옵션 패키지 필요)"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
                                 }
                                 M3Switch {
                                     checked: backend.aiMode === "local"
@@ -612,9 +616,10 @@ Window {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 14
                                 Column {
                                     Layout.fillWidth: true
-                                    Text { text: "429 한도 초과 시 자동으로 로컬 모드 전환"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "429 한도 초과 시 자동으로 로컬 모드 전환"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
                                 }
                                 M3Switch {
                                     checked: backend.fallbackToLocal
@@ -663,11 +668,12 @@ Window {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 14
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 2
-                                    Text { text: "대상 프로세스 이름"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
-                                    Text { text: "쉼표로 여러 개 지정 가능 (기본: RobloxPlayerBeta.exe)"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "대상 프로세스 이름"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "쉼표로 여러 개 지정 가능 (기본: RobloxPlayerBeta.exe)"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
                                 }
                                 Rectangle {
                                     implicitWidth: 250
@@ -682,7 +688,11 @@ Window {
                                         anchors.leftMargin: 12
                                         anchors.rightMargin: 12
                                         text: backend.targetProcessesText
+                                        placeholderText: "예: RobloxPlayerBeta.exe"
                                         color: Theme.textPrimary
+                                        placeholderTextColor: Theme.textMuted
+                                        selectionColor: Theme.primaryContainer
+                                        selectedTextColor: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 13
                                         verticalAlignment: TextInput.AlignVCenter
@@ -694,13 +704,118 @@ Window {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 14
                                 Column {
                                     Layout.fillWidth: true
-                                    Text { text: "게임 BGM/효과음 억제 (300–3400Hz 음성 대역 강조)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    spacing: 2
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "실행 중인 앱에서 선택"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "직접 입력 없이 현재 실행 중인 게임·디스코드 프로세스를 추가합니다"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                }
+                                M3ComboBox {
+                                    id: runningProcCombo
+                                    model: backend.runningProcesses.length > 0 ? backend.runningProcesses : ["(실행 중인 앱 없음)"]
+                                    implicitWidth: 210
+                                }
+                                Rectangle {
+                                    height: 36
+                                    width: addProcTxt.implicitWidth + 22
+                                    radius: Theme.radiusFull
+                                    color: addProcMa.containsMouse ? Theme.primaryContainer : Theme.surfaceContainerHigh
+                                    border.width: 1
+                                    border.color: Theme.outline
+                                    Text {
+                                        id: addProcTxt
+                                        anchors.centerIn: parent
+                                        text: "+ 추가"
+                                        color: Theme.textPrimary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 12
+                                        font.weight: Font.Medium
+                                    }
+                                    MouseArea {
+                                        id: addProcMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (backend.runningProcesses.length > 0 && runningProcCombo.currentText.indexOf(".exe") !== -1) {
+                                                backend.addTargetProcess(runningProcCombo.currentText)
+                                            }
+                                        }
+                                    }
+                                }
+                                Rectangle {
+                                    height: 36
+                                    width: 36
+                                    radius: 18
+                                    color: refProcMa.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
+                                    border.width: 1
+                                    border.color: Theme.outline
+                                    MonoIcon { anchors.centerIn: parent; width: 14; height: 14; name: "refresh"; iconColor: Theme.textSecondary }
+                                    MouseArea {
+                                        id: refProcMa
+                                        anchors.fill: parent
+                                        hoverEnabled: true
+                                        cursorShape: Qt.PointingHandCursor
+                                        onClicked: backend.refreshRunningProcesses()
+                                    }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 14
+                                Column {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "게임 BGM/효과음 억제 (300–3400Hz 음성 대역 강조)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
                                 }
                                 M3Switch {
                                     checked: backend.bgmSuppression
                                     onToggled: function(v) { backend.setBgmSuppression(v) }
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 14
+                                Column {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "문장 끊기 (VAD 응답 속도)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "짧은 콜아웃 위주라면 '빠름', 긴 대화가 잘린다면 '문장 단위'를 선택하세요"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                }
+                                Row {
+                                    spacing: 8
+                                    Repeater {
+                                        model: [
+                                            { id: "fast", label: "빠름 (280ms)" },
+                                            { id: "balanced", label: "균형 (450ms)" },
+                                            { id: "sentence", label: "문장 (750ms)" }
+                                        ]
+                                        delegate: Rectangle {
+                                            height: 34
+                                            width: vadPillTxt.implicitWidth + 20
+                                            radius: Theme.radiusFull
+                                            color: backend.vadPreset === modelData.id ? Theme.primaryContainer : Theme.surfaceContainerHigh
+                                            border.width: 1
+                                            border.color: backend.vadPreset === modelData.id ? Theme.primary : Theme.outline
+                                            Text {
+                                                id: vadPillTxt
+                                                anchors.centerIn: parent
+                                                text: modelData.label
+                                                color: backend.vadPreset === modelData.id ? Theme.textOnPrimaryContainer : Theme.textPrimary
+                                                font.family: Theme.fontFamily
+                                                font.pixelSize: 12
+                                                font.weight: Font.Medium
+                                            }
+                                            MouseArea {
+                                                anchors.fill: parent
+                                                cursorShape: Qt.PointingHandCursor
+                                                onClicked: backend.setVadPreset(modelData.id)
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
@@ -780,13 +895,13 @@ Window {
                         title: "미리보기 & 실시간 피드 스타일"
                         ColumnLayout {
                             Layout.fillWidth: true
-                            Layout.margins: 18
-                            spacing: 16
+                            Layout.margins: 16
+                            spacing: 12
 
                             // Top-right feed miniature preview
                             Rectangle {
                                 Layout.fillWidth: true
-                                height: 174
+                                height: 150
                                 radius: 12
                                 clip: true
                                 gradient: Gradient {
@@ -820,10 +935,10 @@ Window {
                                 Rectangle {
                                     anchors.top: parent.top
                                     anchors.right: parent.right
-                                    anchors.topMargin: 35
+                                    anchors.topMargin: 34
                                     anchors.rightMargin: 14
                                     width: 280
-                                    height: 126
+                                    height: 106
                                     radius: 12
                                     color: Qt.rgba(16/255, 17/255, 20/255, Math.min(0.95, Math.max(0.58, backend.overlayOpacity)))
                                     border.width: 1
@@ -978,11 +1093,36 @@ Window {
 
                             RowLayout {
                                 Layout.fillWidth: true
+                                spacing: 14
                                 Column {
                                     Layout.fillWidth: true
                                     spacing: 2
-                                    Text { text: "클릭 통과 잠금 (스크롤 대신 게임 클릭 우선)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
-                                    Text { text: "끄면 우측 상단 자막 피드를 휠 스크롤/클릭 복사할 수 있습니다 (게임 포커스는 뺏지 않음)"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "내 보낸 번역도 피드에 표시"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "입력 바로 번역한 내 문장도 우측 자막 피드에 시간순으로 함께 기록합니다"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                }
+                                M3Switch { checked: backend.showOutgoingInFeed; onToggled: function(v) { backend.setShowOutgoingInFeed(v) } }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 14
+                                Column {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "번역 결과 클립보드 자동 복사"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "입력 바에서 Enter 시 번역문을 바로 복사해 게임 채팅(Ctrl+V)에 붙여넣기 좋게 합니다"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
+                                }
+                                M3Switch { checked: backend.autoCopyOutgoing; onToggled: function(v) { backend.setAutoCopyOutgoing(v) } }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 14
+                                Column {
+                                    Layout.fillWidth: true
+                                    spacing: 2
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "클릭 통과 잠금 (스크롤 대신 게임 클릭 우선)"; color: Theme.textPrimary; font.family: Theme.fontFamily; font.pixelSize: 14; font.weight: Font.Medium }
+                                    Text { width: parent.width; wrapMode: Text.WordWrap; text: "끄면 우측 상단 자막 피드를 휠 스크롤/클릭 복사할 수 있습니다 (게임 포커스는 뺏지 않음)"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 12 }
                                 }
                                 M3Switch { checked: backend.overlayClickThrough; onToggled: function(v) { backend.setOverlayClickThrough(v) } }
                             }
@@ -1108,7 +1248,7 @@ Window {
                                     iconColor: backend.vbCableAvailable ? Theme.success : Theme.warning
                                 }
                                 Text {
-                                    text: backend.vbCableAvailable ? "가상 마이크(CABLE Input) 감지됨" : "VB-Audio Virtual Cable이 아직 설치/활성화되지 않았습니다"
+                                    text: backend.vbCableAvailable ? "가상 마이크(CABLE Input) 감지됨" : "VB-Audio Virtual Cable 미설치 · Downloads\\VBCABLE_Driver_Pack\\VBCABLE_Setup_x64.exe 관리자 실행 후 재부팅하세요"
                                     color: backend.vbCableAvailable ? Theme.success : Theme.warning
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 13
@@ -1298,6 +1438,8 @@ Window {
                                         placeholderText: "자주 쓰는 말 추가 (예: 나 먼저 갈게!)"
                                         placeholderTextColor: Theme.textMuted
                                         color: Theme.textPrimary
+                                        selectionColor: Theme.primaryContainer
+                                        selectedTextColor: Theme.textPrimary
                                         font.family: Theme.fontFamily
                                         font.pixelSize: 13
                                         verticalAlignment: TextInput.AlignVCenter
@@ -1415,6 +1557,8 @@ Window {
                                     placeholderText: "쉼표로 구분해 입력 (예: Blox Fruits, Obby, Robux, 내닉네임)"
                                     placeholderTextColor: Theme.textMuted
                                     color: Theme.textPrimary
+                                    selectionColor: Theme.primaryContainer
+                                    selectedTextColor: Theme.textPrimary
                                     font.family: Theme.fontFamily
                                     font.pixelSize: 13
                                     verticalAlignment: TextInput.AlignVCenter
