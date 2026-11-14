@@ -9,7 +9,7 @@ import queue
 import threading
 from collections import deque
 
-from PySide6.QtCore import Property, QObject, QTimer, Signal, Slot
+from PySide6.QtCore import Property, QObject, Qt, QTimer, Signal, Slot
 from PySide6.QtGui import QGuiApplication
 
 from ..ai.gemini_client import GeminiClient, QuotaExceeded
@@ -21,7 +21,7 @@ from ..audio.capture import (
     compute_rms_level,
     find_game_pid,
 )
-from ..audio.output import VirtualMicOutput, list_output_devices
+from ..audio.output import VirtualMicOutput, list_output_devices, refresh_audio_devices
 from ..audio.vad import VadSegmenter
 from ..config import (
     Config,
@@ -38,6 +38,7 @@ from ..platform.window import (
     get_foreground_hwnd,
     restore_foreground,
     set_click_through,
+    set_dark_titlebar,
     set_no_activate,
 )
 from ..stt.local_whisper import LocalWhisper
@@ -72,6 +73,7 @@ class Backend(QObject):
     captionTranslating = Signal(int)
     captionReady = Signal(int, str, str, str, float)
     captionDismissed = Signal(int)
+    historyCleared = Signal()
     outgoingStarted = Signal()
     outgoingReady = Signal(str, str, str, str, str, str)
     outgoingFailed = Signal(str)
@@ -127,6 +129,7 @@ class Backend(QObject):
         self._last_outgoing_text = ""
         self._last_outgoing_lang = "en"
         self._history: list[dict[str, str]] = []
+        self._test_caption_seq = 0
         self._quota_errors_recent: deque[float] = deque(maxlen=10)
 
         # Window tracking
@@ -216,12 +219,29 @@ class Backend(QObject):
     def registerInputWindow(self, win) -> None:
         self._input_win = win
 
+    @Slot(QObject)
+    def registerDarkWindow(self, win) -> None:
+        def _apply() -> None:
+            try:
+                set_dark_titlebar(int(win.winId()))
+            except OSError:
+                pass
+
+        win.visibleChanged.connect(lambda: QTimer.singleShot(0, _apply))
+        QTimer.singleShot(0, _apply)
+
     def _apply_caption_style(self) -> None:
         if self._caption_win is None or not self._caption_win.isVisible():
             return
+        want_pass_through = self.cfg.overlay.click_through and not self._edit_mode
         try:
-            set_click_through(int(self._caption_win.winId()), not self._edit_mode)
-        except OSError:
+            self._caption_win.setFlag(Qt.WindowType.WindowTransparentForInput, want_pass_through)
+            hwnd = int(self._caption_win.winId())
+            if want_pass_through:
+                set_click_through(hwnd, True)
+            else:
+                set_no_activate(hwnd)
+        except (OSError, RuntimeError):
             pass
 
     def _apply_status_style(self) -> None:
@@ -355,6 +375,10 @@ class Backend(QObject):
     @Property(bool, notify=overlayLayoutChanged)
     def reduceMotion(self) -> bool:
         return self.cfg.overlay.reduce_motion
+
+    @Property(bool, notify=overlayLayoutChanged)
+    def overlayClickThrough(self) -> bool:
+        return self.cfg.overlay.click_through
 
     @Property(bool, notify=devicesChanged)
     def vbCableAvailable(self) -> bool:
@@ -504,6 +528,7 @@ class Backend(QObject):
     def clearHistory(self) -> None:
         self._history.clear()
         self.historyChanged.emit()
+        self.historyCleared.emit()
 
     @Slot()
     def toggleEditMode(self) -> None:
@@ -511,13 +536,27 @@ class Backend(QObject):
         self._apply_caption_style()
         self.stateChanged.emit()
 
+    @staticmethod
+    def _overlay_base_pos(pos: str, sw: float, sh: float, ww: float, wh: float) -> tuple[float, float]:
+        if pos == "top-left":
+            return 24.0, 24.0
+        if pos == "bottom-right":
+            return sw - ww - 28.0, sh - wh - 28.0
+        if pos == "bottom-left":
+            return 24.0, sh - wh - 28.0
+        if pos == "bottom-center":
+            return (sw - ww) / 2.0, sh - wh - 28.0
+        # Default "top-right": aligned cleanly directly underneath StatusPill
+        return sw - ww - 28.0, 66.0
+
     @Slot(float, float, float, float, float, float)
     def saveOverlayWindowPos(self, wx, wy, sw, sh, ww, wh) -> None:
-        base_x = (sw - ww) / 2
-        base_y = sh - wh - 32
+        base_x, base_y = self._overlay_base_pos(self.cfg.overlay.position, sw, sh, ww, wh)
         self.cfg.overlay.offset_x = int(wx - base_x)
         self.cfg.overlay.offset_y = int(wy - base_y)
+        self.cfg.overlay.layout_version = 2
         save_config(self.cfg)
+        self.overlayLayoutChanged.emit()
 
     @Slot()
     def toggleComposer(self) -> None:
@@ -661,6 +700,9 @@ class Backend(QObject):
             self.cfg.audio.target_processes = procs
             save_config(self.cfg)
             self.stateChanged.emit()
+            if self._listening:
+                self._stop_listening()
+                self._start_listening()
 
     @Slot(bool)
     def setBgmSuppression(self, val: bool) -> None:
@@ -698,6 +740,61 @@ class Backend(QObject):
         save_config(self.cfg)
         self.overlayLayoutChanged.emit()
 
+    @Slot(int)
+    def setMaxCaptions(self, count: int) -> None:
+        self.cfg.overlay.max_captions = max(1, min(12, count))
+        save_config(self.cfg)
+        self.overlayLayoutChanged.emit()
+
+    @Slot(str)
+    def setOverlayPosition(self, pos: str) -> None:
+        self.cfg.overlay.position = pos
+        self.cfg.overlay.offset_x = 0
+        self.cfg.overlay.offset_y = 0
+        self.cfg.overlay.layout_version = 2
+        save_config(self.cfg)
+        self.overlayLayoutChanged.emit()
+
+    @Slot()
+    def resetOverlayPosition(self) -> None:
+        self.cfg.overlay.position = "top-right"
+        self.cfg.overlay.offset_x = 0
+        self.cfg.overlay.offset_y = 0
+        self.cfg.overlay.layout_version = 2
+        save_config(self.cfg)
+        self.overlayLayoutChanged.emit()
+        self.show_toast("자막 위치를 우측 상단으로 초기화했어요")
+
+    @Slot(bool)
+    def setOverlayClickThrough(self, val: bool) -> None:
+        self.cfg.overlay.click_through = val
+        save_config(self.cfg)
+        self._apply_caption_style()
+        self.overlayLayoutChanged.emit()
+
+    @Slot()
+    def toggleOverlayClickThrough(self) -> None:
+        new_val = not self.cfg.overlay.click_through
+        self.setOverlayClickThrough(new_val)
+        if new_val:
+            self.show_toast("자막 클릭 통과 잠금 · 상단 자물쇠로 해제")
+        else:
+            self.show_toast("자막 스크롤·복사 활성화")
+
+    @Slot()
+    def emitTestCaption(self) -> None:
+        samples = [
+            ("en", "Hey watch out, there's a boss spawning behind us!", "야 조심해, 우리 뒤에서 보스 스폰된다!"),
+            ("ja", "ちょっと待って、ポーション買ってから行くね", "잠깐만 기다려, 포션 사고 나서 갈게"),
+            ("en", "Nice jump! Meet me at the checkpoint flag.", "점프 나이스! 체크포인트 깃발에서 만나자."),
+            ("en", "Can anyone trade a mythic pet? I'll add.", "신화 펫 트레이드할 사람? 추가도 드릴게요."),
+        ]
+        lang, orig, trans = samples[self._test_caption_seq % len(samples)]
+        self._test_caption_seq += 1
+        seg_id = -self._test_caption_seq
+        self.captionReady.emit(seg_id, lang, orig, trans, 0.98)
+        self._record_history(lang, orig, trans)
+
     @Slot(str)
     def setTtsEngine(self, engine: str) -> None:
         self.cfg.voice_out.engine = engine
@@ -724,6 +821,13 @@ class Backend(QObject):
         self.cfg.voice_out.mix_microphone = val
         self._reconfigure_output()
         save_config(self.cfg)
+        self.devicesChanged.emit()
+
+    @Slot()
+    def refreshDevices(self) -> None:
+        self._output.close()
+        refresh_audio_devices()
+        self._reconfigure_output()
         self.devicesChanged.emit()
 
     def _reconfigure_output(self) -> None:

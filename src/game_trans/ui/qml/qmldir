@@ -1,6 +1,7 @@
 module game_trans_ui
 singleton Theme 1.0 Theme.qml
 Sparkle 1.0 Sparkle.qml
+MonoIcon 1.0 MonoIcon.qml
 ShimmerBar 1.0 ShimmerBar.qml
 StatusPill 1.0 StatusPill.qml
 CaptionOverlay 1.0 CaptionOverlay.qml
@@ -9,3 +10,5 @@ HistoryWindow 1.0 HistoryWindow.qml
 SettingsWindow 1.0 SettingsWindow.qml
 M3Card 1.0 M3Card.qml
 M3Switch 1.0 M3Switch.qml
+M3ComboBox 1.0 M3ComboBox.qml
+M3Slider 1.0 M3Slider.qml

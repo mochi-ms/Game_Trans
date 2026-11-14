@@ -8,10 +8,10 @@ Window {
     visible: backend.composerOpen
     color: "transparent"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-    width: 720
+    width: 740
     height: col.implicitHeight + 24
     x: Math.round((Screen.desktopAvailableWidth - width) / 2)
-    y: Math.round(Screen.desktopAvailableHeight * 0.42 - height / 2)
+    y: Math.round(Screen.desktopAvailableHeight * 0.28)
 
     property string currentSource: ""
     property string currentTranslation: ""
@@ -21,6 +21,7 @@ Window {
     property string currentTargetLang: "en"
     property bool hasResult: false
     property bool loading: false
+    property bool copyDone: false
     property var inputHistory: []
     property int historyIdx: -1
 
@@ -39,6 +40,12 @@ Window {
             win.requestActivate()
             inputField.forceActiveFocus()
         }
+    }
+
+    Timer {
+        id: copyResetTimer
+        interval: 1400
+        onTriggered: win.copyDone = false
     }
 
     Connections {
@@ -90,10 +97,10 @@ Window {
         anchors.margins: 12
         spacing: 10
 
-        // Quick phrases strip
+        // Quick phrases strip (fixed 32px height so input bar never shifts vertically)
         Flickable {
             Layout.fillWidth: true
-            height: 36
+            height: 32
             contentWidth: phraseRow.implicitWidth
             clip: true
             flickableDirection: Flickable.HorizontalFlick
@@ -104,36 +111,40 @@ Window {
                 Repeater {
                     model: backend.quickPhrases
                     delegate: Rectangle {
-                        height: 32
-                        width: chipRow.implicitWidth + 20
+                        height: 30
+                        width: chipRow.implicitWidth + 18
                         radius: Theme.radiusFull
-                        color: chipMa.containsMouse ? Theme.surfaceContainerHigh : Qt.rgba(30/255, 31/255, 32/255, 0.90)
+                        color: chipMa.containsMouse ? Theme.surfaceContainerHigh : Theme.scrim
                         border.width: 1
-                        border.color: Theme.outline
+                        border.color: chipMa.containsMouse ? Theme.outline : Theme.borderSubtle
 
                         Row {
                             id: chipRow
                             anchors.centerIn: parent
                             spacing: 6
-                            Text {
-                                text: modelData.emoji + " " + modelData.text
-                                color: Theme.onSurface
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                                font.weight: Font.Medium
-                            }
                             Rectangle {
                                 visible: index < 9
                                 width: 16
                                 height: 16
                                 radius: 4
                                 color: Theme.surfaceContainerHighest
+                                anchors.verticalCenter: parent.verticalCenter
                                 Text {
                                     anchors.centerIn: parent
                                     text: (index + 1).toString()
-                                    color: Theme.onSurfaceVariant
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
                                     font.pixelSize: 10
+                                    font.weight: Font.Medium
                                 }
+                            }
+                            Text {
+                                text: modelData.text
+                                color: Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
                             }
                         }
 
@@ -149,258 +160,12 @@ Window {
             }
         }
 
-        // Translation result card
-        Rectangle {
-            id: resultCard
-            visible: win.hasResult
-            Layout.fillWidth: true
-            implicitHeight: resCol.implicitHeight + 28
-            radius: Theme.radiusCard
-            color: Qt.rgba(30/255, 31/255, 32/255, 0.96)
-            border.width: 1
-            border.color: Qt.rgba(1, 1, 1, 0.08)
-
-            ColumnLayout {
-                id: resCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 16
-                spacing: 10
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 12
-
-                    Sparkle {
-                        Layout.alignment: Qt.AlignTop
-                        Layout.topMargin: 2
-                    }
-
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        spacing: 4
-
-                        Column {
-                            visible: win.loading
-                            Layout.fillWidth: true
-                            spacing: 8
-                            ShimmerBar { width: 420; active: win.loading }
-                            ShimmerBar { width: 260; active: win.loading }
-                        }
-
-                        Text {
-                            visible: !win.loading
-                            Layout.fillWidth: true
-                            text: win.currentTranslation
-                            wrapMode: Text.WordWrap
-                            color: Theme.onSurface
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 21
-                            font.weight: Font.DemiBold
-                        }
-
-                        Text {
-                            visible: !win.loading && win.currentPronunciation.length > 0
-                            Layout.fillWidth: true
-                            text: win.currentPronunciation
-                            wrapMode: Text.WordWrap
-                            color: Theme.onSurfaceVariant
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 14
-                        }
-
-                        Text {
-                            visible: !win.loading && win.currentSource.length > 0
-                            Layout.fillWidth: true
-                            text: "원문 · " + win.currentSource
-                            elide: Text.ElideRight
-                            color: "#8E918F"
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                        }
-                    }
-
-                    Rectangle {
-                        Layout.alignment: Qt.AlignTop
-                        width: 28
-                        height: 28
-                        radius: 14
-                        color: closeResMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                        Text {
-                            anchors.centerIn: parent
-                            text: "✕"
-                            color: Theme.onSurfaceVariant
-                            font.pixelSize: 13
-                        }
-                        MouseArea {
-                            id: closeResMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: win.hasResult = false
-                        }
-                    }
-                }
-
-                // Action row
-                RowLayout {
-                    visible: !win.loading
-                    Layout.fillWidth: true
-                    Layout.leftMargin: 36
-                    spacing: 6
-
-                    // Primary Speak button (Filled Pill)
-                    Rectangle {
-                        height: 38
-                        width: speakRow.implicitWidth + 28
-                        radius: Theme.radiusFull
-                        color: backend.ttsPlaying ? Theme.primaryContainer : Theme.primary
-                        opacity: speakMa.containsMouse ? 0.92 : 1.0
-
-                        Row {
-                            id: speakRow
-                            anchors.centerIn: parent
-                            spacing: 6
-                            Text {
-                                text: backend.ttsPlaying ? "⏹" : "🔊"
-                                font.pixelSize: 14
-                                color: backend.ttsPlaying ? Theme.onPrimaryContainer : Theme.onPrimary
-                            }
-                            Text {
-                                text: backend.ttsPlaying ? "송출 중 (중지)" : "말하기"
-                                color: backend.ttsPlaying ? Theme.onPrimaryContainer : Theme.onPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 13
-                                font.weight: Font.Medium
-                            }
-                        }
-                        MouseArea {
-                            id: speakMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (backend.ttsPlaying) backend.stopSpeak()
-                                else backend.speakText(win.currentTranslation, win.currentTargetLang)
-                            }
-                        }
-                    }
-
-                    // Copy icon button
-                    Rectangle {
-                        width: 38
-                        height: 38
-                        radius: 19
-                        color: copyMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                        Text {
-                            anchors.centerIn: parent
-                            text: "📋"
-                            font.pixelSize: 14
-                        }
-                        MouseArea {
-                            id: copyMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: backend.copyText(win.currentTranslation)
-                        }
-                    }
-
-                    // Retry icon button
-                    Rectangle {
-                        width: 38
-                        height: 38
-                        radius: 19
-                        color: retryMa.containsMouse ? Qt.rgba(1, 1, 1, 0.08) : "transparent"
-                        Text {
-                            anchors.centerIn: parent
-                            text: "↻"
-                            color: Theme.onSurfaceVariant
-                            font.pixelSize: 18
-                        }
-                        MouseArea {
-                            id: retryMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (win.currentSource.length > 0)
-                                    backend.translateOutgoing(win.currentSource, false, "")
-                            }
-                        }
-                    }
-
-                    Item { Layout.fillWidth: true }
-
-                    // Tone suggestion chips
-                    Rectangle {
-                        visible: win.currentCasual.length > 0
-                        height: 32
-                        width: casTxt.implicitWidth + 24
-                        radius: Theme.radiusFull
-                        color: casMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
-                        border.width: 1
-                        border.color: Theme.outline
-                        Text {
-                            id: casTxt
-                            anchors.centerIn: parent
-                            text: "더 캐주얼"
-                            color: Theme.onSurface
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                            font.weight: Font.Medium
-                        }
-                        MouseArea {
-                            id: casMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (win.currentCasual.length > 0)
-                                    win.currentTranslation = win.currentCasual
-                            }
-                        }
-                    }
-
-                    Rectangle {
-                        visible: win.currentPolite.length > 0
-                        height: 32
-                        width: polTxt.implicitWidth + 24
-                        radius: Theme.radiusFull
-                        color: polMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
-                        border.width: 1
-                        border.color: Theme.outline
-                        Text {
-                            id: polTxt
-                            anchors.centerIn: parent
-                            text: "더 공손"
-                            color: Theme.onSurface
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                            font.weight: Font.Medium
-                        }
-                        MouseArea {
-                            id: polMa
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                if (win.currentPolite.length > 0)
-                                    win.currentTranslation = win.currentPolite
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         // Main Gemini-style Pill Input Bar with AI Gradient focus border
         Rectangle {
             id: gradientBorder
             Layout.fillWidth: true
-            height: 60
-            radius: 30
+            height: 58
+            radius: 29
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: inputField.activeFocus ? "#4285F4" : Theme.outline }
@@ -411,8 +176,8 @@ Window {
             Rectangle {
                 anchors.fill: parent
                 anchors.margins: 1.5
-                radius: 28.5
-                color: Qt.rgba(30/255, 31/255, 32/255, 0.98)
+                radius: 27.5
+                color: Qt.rgba(22/255, 23/255, 27/255, 0.98)
 
                 RowLayout {
                     anchors.fill: parent
@@ -421,8 +186,8 @@ Window {
                     spacing: 8
 
                     Sparkle {
-                        width: 22
-                        height: 22
+                        width: 20
+                        height: 20
                     }
 
                     TextField {
@@ -430,10 +195,10 @@ Window {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         placeholderText: "하고 싶은 말을 입력하세요…"
-                        placeholderTextColor: "#8E918F"
-                        color: Theme.onSurface
+                        placeholderTextColor: Theme.textMuted
+                        color: Theme.textPrimary
                         font.family: Theme.fontFamily
-                        font.pixelSize: 16
+                        font.pixelSize: 15
                         verticalAlignment: TextInput.AlignVCenter
                         background: Item {}
                         selectByMouse: true
@@ -462,20 +227,33 @@ Window {
                         }
                     }
 
-                    // Tone chip
+                    // Tone chip (monochrome icon + label)
                     Rectangle {
-                        height: 36
-                        width: toneTxt.implicitWidth + 22
+                        height: 34
+                        width: toneRow.implicitWidth + 20
                         radius: Theme.radiusFull
                         color: toneMa.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
-                        Text {
-                            id: toneTxt
+                        border.width: 1
+                        border.color: Theme.borderSubtle
+                        Row {
+                            id: toneRow
                             anchors.centerIn: parent
-                            text: backend.tone === "casual" ? "🎮 캐주얼" : (backend.tone === "polite" ? "🤝 공손" : "💬 기본")
-                            color: Theme.onSurface
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                            font.weight: Font.Medium
+                            spacing: 6
+                            MonoIcon {
+                                width: 14
+                                height: 14
+                                name: "tone"
+                                iconColor: Theme.textSecondary
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: backend.tone === "casual" ? "캐주얼" : (backend.tone === "polite" ? "공손" : "기본")
+                                color: Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
                         MouseArea {
                             id: toneMa
@@ -486,20 +264,33 @@ Window {
                         }
                     }
 
-                    // Target language chip
+                    // Target language chip (monochrome globe icon + lang)
                     Rectangle {
-                        height: 36
-                        width: langChipTxt.implicitWidth + 22
+                        height: 34
+                        width: langRow.implicitWidth + 20
                         radius: Theme.radiusFull
                         color: langMa.containsMouse ? Theme.surfaceContainerHighest : Theme.surfaceContainerHigh
-                        Text {
-                            id: langChipTxt
+                        border.width: 1
+                        border.color: Theme.borderSubtle
+                        Row {
+                            id: langRow
                             anchors.centerIn: parent
-                            text: "🌐 " + backend.effectivePartnerLang.toUpperCase() + (backend.partnerLanguage === "auto" ? " (자동)" : "")
-                            color: Theme.primary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                            font.weight: Font.Medium
+                            spacing: 6
+                            MonoIcon {
+                                width: 14
+                                height: 14
+                                name: "globe"
+                                iconColor: Theme.primary
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: backend.effectivePartnerLang.toUpperCase() + (backend.partnerLanguage === "auto" ? " 자동" : "")
+                                color: Theme.primary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
                         MouseArea {
                             id: langMa
@@ -512,18 +303,18 @@ Window {
 
                     // Send circle button (Gemini ↑ style)
                     Rectangle {
-                        width: 44
-                        height: 44
-                        radius: 22
+                        width: 42
+                        height: 42
+                        radius: 21
                         property bool ready: inputField.text.trim().length > 0
                         color: ready ? Theme.primary : Theme.surfaceContainerHigh
-
-                        Text {
+                        MonoIcon {
                             anchors.centerIn: parent
-                            text: "↑"
-                            color: parent.ready ? Theme.onPrimary : "#8E918F"
-                            font.pixelSize: 18
-                            font.bold: true
+                            width: 17
+                            height: 17
+                            name: "arrow_up"
+                            strokeWidth: 2.0
+                            iconColor: parent.ready ? Theme.textOnPrimary : Theme.textMuted
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -536,21 +327,295 @@ Window {
             }
         }
 
+        // Translation result card expands cleanly BELOW input bar
+        Rectangle {
+            id: resultCard
+            visible: win.hasResult
+            Layout.fillWidth: true
+            implicitHeight: resCol.implicitHeight + 28
+            radius: Theme.radiusCard
+            color: Theme.cardGlass
+            border.width: 1
+            border.color: Theme.borderSubtle
+
+            ColumnLayout {
+                id: resCol
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.margins: 16
+                spacing: 12
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 12
+
+                    Sparkle {
+                        width: 20
+                        height: 20
+                        Layout.alignment: Qt.AlignTop
+                        Layout.topMargin: 3
+                    }
+
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 5
+
+                        Column {
+                            visible: win.loading
+                            Layout.fillWidth: true
+                            spacing: 8
+                            ShimmerBar { width: 420; active: win.loading }
+                            ShimmerBar { width: 260; active: win.loading }
+                        }
+
+                        Text {
+                            visible: !win.loading
+                            Layout.fillWidth: true
+                            text: win.currentTranslation
+                            wrapMode: Text.WordWrap
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 20
+                            font.weight: Font.DemiBold
+                        }
+
+                        Text {
+                            visible: !win.loading && win.currentPronunciation.length > 0
+                            Layout.fillWidth: true
+                            text: win.currentPronunciation
+                            wrapMode: Text.WordWrap
+                            color: Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 14
+                        }
+
+                        Text {
+                            visible: !win.loading && win.currentSource.length > 0
+                            Layout.fillWidth: true
+                            text: "원문 · " + win.currentSource
+                            elide: Text.ElideRight
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                        }
+                    }
+
+                    Rectangle {
+                        Layout.alignment: Qt.AlignTop
+                        width: 28
+                        height: 28
+                        radius: 14
+                        color: closeResMa.containsMouse ? Theme.navHoverBg : "transparent"
+                        MonoIcon {
+                            anchors.centerIn: parent
+                            width: 14
+                            height: 14
+                            name: "close"
+                            iconColor: Theme.textSecondary
+                        }
+                        MouseArea {
+                            id: closeResMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: win.hasResult = false
+                        }
+                    }
+                }
+
+                // Action row
+                RowLayout {
+                    visible: !win.loading
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 32
+                    spacing: 6
+
+                    // Primary Speak button (Filled Pill)
+                    Rectangle {
+                        height: 36
+                        width: speakRow.implicitWidth + 26
+                        radius: Theme.radiusFull
+                        color: backend.ttsPlaying ? Theme.primaryContainer : Theme.primary
+                        opacity: speakMa.containsMouse ? 0.92 : 1.0
+
+                        Row {
+                            id: speakRow
+                            anchors.centerIn: parent
+                            spacing: 7
+                            MonoIcon {
+                                width: 15
+                                height: 15
+                                name: backend.ttsPlaying ? "stop" : "volume"
+                                iconColor: backend.ttsPlaying ? Theme.textOnPrimaryContainer : Theme.textOnPrimary
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: backend.ttsPlaying ? "송출 중지" : "음성으로 말하기"
+                                color: backend.ttsPlaying ? Theme.textOnPrimaryContainer : Theme.textOnPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 13
+                                font.weight: Font.Medium
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                        }
+                        MouseArea {
+                            id: speakMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (backend.ttsPlaying) backend.stopSpeak()
+                                else backend.speakText(win.currentTranslation, win.currentTargetLang)
+                            }
+                        }
+                    }
+
+                    // Copy icon button
+                    Rectangle {
+                        height: 36
+                        width: win.copyDone ? copyRow.implicitWidth + 20 : 36
+                        radius: 18
+                        color: copyMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+                        Row {
+                            id: copyRow
+                            anchors.centerIn: parent
+                            spacing: 5
+                            MonoIcon {
+                                width: 15
+                                height: 15
+                                name: win.copyDone ? "check" : "copy"
+                                iconColor: win.copyDone ? Theme.success : Theme.textSecondary
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                visible: win.copyDone
+                                text: "복사됨"
+                                color: Theme.success
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.Medium
+                            }
+                        }
+                        MouseArea {
+                            id: copyMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                backend.copyText(win.currentTranslation)
+                                win.copyDone = true
+                                copyResetTimer.restart()
+                            }
+                        }
+                    }
+
+                    // Retry icon button
+                    Rectangle {
+                        width: 36
+                        height: 36
+                        radius: 18
+                        color: retryMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+                        MonoIcon {
+                            anchors.centerIn: parent
+                            width: 15
+                            height: 15
+                            name: "refresh"
+                            iconColor: Theme.textSecondary
+                        }
+                        MouseArea {
+                            id: retryMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (win.currentSource.length > 0)
+                                    backend.translateOutgoing(win.currentSource, false, "")
+                            }
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+
+                    // Tone suggestion chips
+                    Rectangle {
+                        visible: win.currentCasual.length > 0
+                        height: 32
+                        width: casTxt.implicitWidth + 22
+                        radius: Theme.radiusFull
+                        color: casMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+                        border.width: 1
+                        border.color: Theme.outline
+                        Text {
+                            id: casTxt
+                            anchors.centerIn: parent
+                            text: "더 캐주얼"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                        }
+                        MouseArea {
+                            id: casMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (win.currentCasual.length > 0)
+                                    win.currentTranslation = win.currentCasual
+                            }
+                        }
+                    }
+
+                    Rectangle {
+                        visible: win.currentPolite.length > 0
+                        height: 32
+                        width: polTxt.implicitWidth + 22
+                        radius: Theme.radiusFull
+                        color: polMa.containsMouse ? Theme.surfaceContainerHigh : "transparent"
+                        border.width: 1
+                        border.color: Theme.outline
+                        Text {
+                            id: polTxt
+                            anchors.centerIn: parent
+                            text: "더 공손"
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 12
+                            font.weight: Font.Medium
+                        }
+                        MouseArea {
+                            id: polMa
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                if (win.currentPolite.length > 0)
+                                    win.currentTranslation = win.currentPolite
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Shortcut hints pill
         Rectangle {
             Layout.alignment: Qt.AlignHCenter
-            height: 28
+            height: 26
             width: hintRow.implicitWidth + 24
             radius: Theme.radiusFull
             color: Theme.scrim
+            border.width: 1
+            border.color: Theme.borderSubtle
 
             Row {
                 id: hintRow
                 anchors.centerIn: parent
                 spacing: 14
-                Text { text: "Enter 번역"; color: Theme.onSurfaceVariant; font.family: Theme.fontFamily; font.pixelSize: 11 }
-                Text { text: "Ctrl+Enter 번역 + 바로 말하기"; color: Theme.onSurfaceVariant; font.family: Theme.fontFamily; font.pixelSize: 11 }
-                Text { text: "Esc 게임으로 복귀"; color: Theme.onSurfaceVariant; font.family: Theme.fontFamily; font.pixelSize: 11 }
+                Text { text: "Enter 번역"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
+                Text { text: "Ctrl+Enter 번역 + 바로 송출"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
+                Text { text: "Esc 게임으로 복귀"; color: Theme.textSecondary; font.family: Theme.fontFamily; font.pixelSize: 11 }
             }
         }
     }

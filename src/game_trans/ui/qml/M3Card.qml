@@ -11,7 +11,7 @@ Rectangle {
     radius: Theme.radiusSettingsCard
     color: Theme.surfaceContainer
     border.width: 1
-    border.color: Theme.surfaceContainerHighest
+    border.color: Theme.borderSubtle
 
     ColumnLayout {
         id: col

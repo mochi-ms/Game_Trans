@@ -18,29 +18,29 @@ Window {
         id: pill
         anchors.centerIn: parent
         implicitWidth: row.implicitWidth + 24
-        implicitHeight: 38
+        implicitHeight: 36
         radius: Theme.radiusFull
         color: Theme.scrim
         border.width: backend.editMode ? 1.5 : 1
-        border.color: backend.editMode ? Theme.primary : Qt.rgba(1, 1, 1, 0.10)
+        border.color: backend.editMode ? Theme.primary : Theme.borderSubtle
 
         RowLayout {
             id: row
             anchors.centerIn: parent
-            spacing: 10
+            spacing: 7
 
             // Status breathing dot
             Rectangle {
                 id: dot
-                width: 8
-                height: 8
-                radius: 4
+                width: 7
+                height: 7
+                radius: 3.5
                 color: {
                     if (backend.statusLevel === "live") return Theme.success
                     if (backend.statusLevel === "warn") return Theme.warning
                     if (backend.statusLevel === "error") return Theme.error
                     if (backend.statusLevel === "local") return Theme.primary
-                    return Theme.outline
+                    return Theme.textMuted
                 }
 
                 SequentialAnimation on opacity {
@@ -53,7 +53,7 @@ Window {
 
             Text {
                 text: backend.statusText
-                color: Theme.onSurface
+                color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.labelSize
                 font.weight: Font.Medium
@@ -61,28 +61,29 @@ Window {
 
             Rectangle {
                 width: 1
-                height: 14
+                height: 13
                 color: Theme.outline
             }
 
             Text {
-                text: backend.rpm + "/" + backend.rpmLimit + " RPM · 오늘 $" + backend.costToday.toFixed(2)
-                color: Theme.onSurfaceVariant
+                text: backend.rpm + "/" + backend.rpmLimit + " · $" + backend.costToday.toFixed(2)
+                color: Theme.textSecondary
                 font.family: Theme.fontFamily
                 font.pixelSize: 12
             }
 
-            // Pause / Resume button
+            // Pause / Resume listening
             Rectangle {
                 width: 26
                 height: 26
                 radius: 13
-                color: pauseMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
-                Text {
+                color: pauseMa.containsMouse ? Theme.navHoverBg : "transparent"
+                MonoIcon {
                     anchors.centerIn: parent
-                    text: backend.listening ? "⏸" : "▶"
-                    color: backend.listening ? Theme.onSurfaceVariant : Theme.success
-                    font.pixelSize: 12
+                    width: 14
+                    height: 14
+                    name: backend.listening ? "pause" : "play"
+                    iconColor: backend.listening ? Theme.textSecondary : Theme.success
                 }
                 MouseArea {
                     id: pauseMa
@@ -93,18 +94,62 @@ Window {
                 }
             }
 
-            // History button
+            // Open composer (say something)
             Rectangle {
                 width: 26
                 height: 26
                 radius: 13
-                color: histMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
-                Text {
+                color: chatMa.containsMouse ? Theme.navHoverBg : "transparent"
+                MonoIcon {
                     anchors.centerIn: parent
-                    text: "≡"
-                    color: Theme.onSurfaceVariant
-                    font.pixelSize: 15
-                    font.bold: true
+                    width: 14
+                    height: 14
+                    name: "chat"
+                    iconColor: backend.composerOpen ? Theme.primary : Theme.textSecondary
+                }
+                MouseArea {
+                    id: chatMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: backend.toggleComposer()
+                }
+            }
+
+            // Click-through lock toggle
+            Rectangle {
+                width: 26
+                height: 26
+                radius: 13
+                color: lockMa.containsMouse ? Theme.navHoverBg : (backend.overlayClickThrough ? Theme.navActiveBg : "transparent")
+                MonoIcon {
+                    anchors.centerIn: parent
+                    width: 13
+                    height: 13
+                    name: backend.overlayClickThrough ? "lock" : "unlock"
+                    iconColor: backend.overlayClickThrough ? Theme.primary : Theme.textSecondary
+                }
+                MouseArea {
+                    id: lockMa
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: backend.toggleOverlayClickThrough()
+                }
+            }
+
+            // Full History window
+            Rectangle {
+                width: 26
+                height: 26
+                radius: 13
+                color: histMa.containsMouse ? Theme.navHoverBg : "transparent"
+                MonoIcon {
+                    anchors.centerIn: parent
+                    width: 14
+                    height: 14
+                    name: "history"
+                    iconColor: backend.historyOpen ? Theme.primary : Theme.textSecondary
                 }
                 MouseArea {
                     id: histMa
@@ -115,17 +160,18 @@ Window {
                 }
             }
 
-            // Settings button
+            // Settings
             Rectangle {
                 width: 26
                 height: 26
                 radius: 13
-                color: setMa.containsMouse ? Qt.rgba(1, 1, 1, 0.10) : "transparent"
-                Text {
+                color: setMa.containsMouse ? Theme.navHoverBg : "transparent"
+                MonoIcon {
                     anchors.centerIn: parent
-                    text: "⚙"
-                    color: Theme.onSurfaceVariant
-                    font.pixelSize: 14
+                    width: 14
+                    height: 14
+                    name: "settings"
+                    iconColor: backend.settingsOpen ? Theme.primary : Theme.textSecondary
                 }
                 MouseArea {
                     id: setMa

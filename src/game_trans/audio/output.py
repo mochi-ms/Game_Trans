@@ -18,12 +18,42 @@ from scipy.signal import resample_poly
 log = logging.getLogger(__name__)
 
 
+_HOSTAPI_RANK = {"Windows WASAPI": 0, "Windows WDM-KS": 1, "Windows DirectSound": 2, "MME": 3}
+_GENERIC_NAMES = ("microsoft 사운드 매퍼", "microsoft sound mapper", "주 사운드 드라이버", "primary sound driver")
+
+
+def _hostapi_name(dev: dict, apis: list[dict]) -> str:
+    idx = int(dev.get("hostapi", 0))
+    return str(apis[idx]["name"]) if 0 <= idx < len(apis) else ""
+
+
+def refresh_audio_devices() -> None:
+    """Reload PortAudio's cached device list (e.g. after installing VB-Cable)."""
+    sd._terminate()
+    sd._initialize()
+
+
 def list_output_devices() -> list[tuple[int, str]]:
-    out: list[tuple[int, str]] = []
+    apis = sd.query_hostapis()
+    chosen: dict[str, tuple[int, int, str]] = {}
+    fallback: list[tuple[int, str]] = []
     for idx, dev in enumerate(sd.query_devices()):
-        if dev["max_output_channels"] > 0:
-            out.append((idx, str(dev["name"])))
-    return out
+        if dev["max_output_channels"] <= 0:
+            continue
+        name = str(dev["name"]).strip()
+        low = name.lower()
+        fallback.append((idx, name))
+        if any(low.startswith(g) for g in _GENERIC_NAMES):
+            continue
+        rank = _HOSTAPI_RANK.get(_hostapi_name(dev, apis), 9)
+        # MME truncates names at 31 chars, so match prefix when deduping
+        key = low[:28]
+        prev = chosen.get(key)
+        if prev is None or (rank, -len(name)) < (prev[0], -len(prev[2])):
+            chosen[key] = (rank, idx, name)
+    if chosen:
+        return [(idx, name) for _rank, idx, name in chosen.values()]
+    return fallback
 
 
 def list_input_devices() -> list[tuple[int, str]]:
@@ -37,10 +67,14 @@ def list_input_devices() -> list[tuple[int, str]]:
 def find_output_device(name_part: str) -> int | None:
     if not name_part:
         return None
+    apis = sd.query_hostapis()
+    best: tuple[int, int] | None = None
     for idx, dev in enumerate(sd.query_devices()):
         if dev["max_output_channels"] > 0 and name_part.lower() in str(dev["name"]).lower():
-            return idx
-    return None
+            rank = _HOSTAPI_RANK.get(_hostapi_name(dev, apis), 9)
+            if best is None or rank < best[0]:
+                best = (rank, idx)
+    return best[1] if best is not None else None
 
 
 def find_input_device(name_part: str) -> int | None:

@@ -105,3 +105,19 @@ def focus_window(hwnd: int) -> None:
     finally:
         if attached:
             user32.AttachThreadInput(fg_tid, cur_tid, False)
+
+
+def set_dark_titlebar(hwnd: int) -> None:
+    """Enable Windows 10/11 immersive dark titlebar and match #0F1012 caption color on Win11."""
+    if sys.platform != "win32" or not hwnd:
+        return
+    try:
+        dwmapi = ctypes.windll.dwmapi
+        dark = ctypes.c_int(1)
+        for attr in (20, 19):  # DWMWA_USE_IMMERSIVE_DARK_MODE (Win11 / Win10 1903+)
+            dwmapi.DwmSetWindowAttribute(hwnd, attr, ctypes.byref(dark), ctypes.sizeof(dark))
+        # DWMWA_CAPTION_COLOR = 35, COLORREF BGR (#0F1012 -> 0x0012100F)
+        caption_bgr = ctypes.c_uint(0x0012100F)
+        dwmapi.DwmSetWindowAttribute(hwnd, 35, ctypes.byref(caption_bgr), ctypes.sizeof(caption_bgr))
+    except OSError:
+        pass

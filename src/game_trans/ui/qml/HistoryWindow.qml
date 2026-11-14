@@ -8,9 +8,13 @@ Window {
     visible: backend.historyOpen
     title: "Game Trans – 자막 기록"
     color: Theme.surface
-    width: 520
-    height: 600
+    width: 540
+    height: 620
+    minimumWidth: 420
+    minimumHeight: 420
     flags: Qt.Window | Qt.WindowStaysOnTopHint
+
+    Component.onCompleted: backend.registerDarkWindow(win)
 
     onClosing: function(close) {
         close.accepted = false
@@ -19,33 +23,46 @@ Window {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 18
-        spacing: 12
+        anchors.margins: 20
+        spacing: 14
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: 10
             Sparkle { width: 20; height: 20 }
             Text {
                 text: "최근 자막 기록"
-                color: Theme.onSurface
+                color: Theme.textPrimary
                 font.family: Theme.fontFamily
                 font.pixelSize: 18
-                font.weight: Font.Medium
+                font.weight: Font.DemiBold
             }
             Item { Layout.fillWidth: true }
             Rectangle {
                 height: 32
-                width: 72
+                width: clearRow.implicitWidth + 22
                 radius: Theme.radiusFull
                 color: clearMa.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceContainer
                 border.width: 1
                 border.color: Theme.outline
-                Text {
+                Row {
+                    id: clearRow
                     anchors.centerIn: parent
-                    text: "비우기"
-                    color: Theme.onSurfaceVariant
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 12
+                    spacing: 6
+                    MonoIcon {
+                        width: 13
+                        height: 13
+                        name: "trash"
+                        iconColor: Theme.textSecondary
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Text {
+                        text: "비우기"
+                        color: Theme.textSecondary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 12
+                        font.weight: Font.Medium
+                    }
                 }
                 MouseArea {
                     id: clearMa
@@ -65,26 +82,37 @@ Window {
             spacing: 8
             model: backend.captionHistory
 
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+                contentItem: Rectangle {
+                    implicitWidth: 6
+                    radius: 3
+                    color: Theme.surfaceContainerHighest
+                }
+                background: Item {}
+            }
+
             delegate: Rectangle {
                 width: list.width
-                implicitHeight: itemCol.implicitHeight + 20
+                implicitHeight: itemCol.implicitHeight + 22
                 radius: 14
                 color: itemMa.containsMouse ? Theme.surfaceContainerHigh : Theme.surfaceContainer
                 border.width: 1
-                border.color: Theme.outline
+                border.color: itemMa.containsMouse ? Theme.outline : Theme.borderSubtle
 
                 ColumnLayout {
                     id: itemCol
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.margins: 12
-                    spacing: 4
+                    anchors.margins: 14
+                    spacing: 5
 
                     RowLayout {
                         Layout.fillWidth: true
+                        spacing: 8
                         Rectangle {
-                            height: 18
+                            height: 20
                             width: lTxt.implicitWidth + 12
                             radius: Theme.radiusFull
                             color: Theme.primaryContainer
@@ -92,22 +120,36 @@ Window {
                                 id: lTxt
                                 anchors.centerIn: parent
                                 text: modelData.lang.toUpperCase()
-                                color: Theme.onPrimaryContainer
+                                color: Theme.textOnPrimaryContainer
+                                font.family: Theme.fontFamily
                                 font.pixelSize: 10
-                                font.bold: true
+                                font.weight: Font.DemiBold
                             }
                         }
                         Text {
                             text: modelData.time
-                            color: "#8E918F"
+                            color: Theme.textMuted
+                            font.family: Theme.fontFamily
                             font.pixelSize: 11
                         }
                         Item { Layout.fillWidth: true }
-                        Text {
-                            text: "클릭하여 복사"
-                            color: Theme.primary
-                            font.pixelSize: 11
+                        Row {
                             visible: itemMa.containsMouse
+                            spacing: 4
+                            MonoIcon {
+                                width: 13
+                                height: 13
+                                name: "copy"
+                                iconColor: Theme.primary
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            Text {
+                                text: "복사"
+                                color: Theme.primary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 11
+                                font.weight: Font.Medium
+                            }
                         }
                     }
 
@@ -115,7 +157,7 @@ Window {
                         Layout.fillWidth: true
                         text: modelData.original
                         wrapMode: Text.WordWrap
-                        color: Theme.onSurfaceVariant
+                        color: Theme.textSecondary
                         font.family: Theme.fontFamily
                         font.pixelSize: 12
                     }
@@ -124,7 +166,7 @@ Window {
                         Layout.fillWidth: true
                         text: modelData.translation
                         wrapMode: Text.WordWrap
-                        color: Theme.onSurface
+                        color: Theme.textPrimary
                         font.family: Theme.fontFamily
                         font.pixelSize: 15
                         font.weight: Font.Medium
@@ -140,14 +182,25 @@ Window {
                 }
             }
 
-            Text {
+            Column {
                 anchors.centerIn: parent
                 visible: list.count === 0
-                text: "아직 수신된 자막이 없어요.\n듣기를 켜고 게임 소리가 나오면 여기에 기록됩니다."
-                horizontalAlignment: Text.AlignHCenter
-                color: Theme.onSurfaceVariant
-                font.family: Theme.fontFamily
-                font.pixelSize: 13
+                spacing: 10
+                MonoIcon {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: 28
+                    height: 28
+                    name: "history"
+                    iconColor: Theme.textMuted
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "아직 수신된 자막이 없습니다.\n듣기를 켜고 게임 소리가 나오면 여기에 기록됩니다."
+                    horizontalAlignment: Text.AlignHCenter
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                }
             }
         }
     }

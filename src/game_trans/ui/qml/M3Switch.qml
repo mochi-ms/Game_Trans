@@ -20,7 +20,7 @@ Rectangle {
         radius: width / 2
         anchors.verticalCenter: parent.verticalCenter
         x: root.checked ? parent.width - width - 4 : 6
-        color: root.checked ? Theme.onPrimary : "#8E918F"
+        color: root.checked ? Theme.textOnPrimary : "#8E918F"
 
         Behavior on x { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
         Behavior on width { NumberAnimation { duration: 140 } }

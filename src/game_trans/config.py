@@ -81,15 +81,17 @@ class VoiceOut:
 
 @dataclass
 class Overlay:
-    position: str = "bottom-center"
-    font_size: int = 22
-    opacity: float = 0.72
+    position: str = "top-right"
+    font_size: int = 18
+    opacity: float = 0.80
     caption_duration_s: int = 6
-    max_captions: int = 3
+    max_captions: int = 4
     show_original: bool = True
     reduce_motion: bool = False
+    click_through: bool = False
     offset_x: int = 0
     offset_y: int = 0
+    layout_version: int = 2
 
 
 @dataclass
@@ -169,7 +171,18 @@ def load_config(path: Path | None = None) -> Config:
     cfg = Config()
     if path.exists():
         with path.open("rb") as fp:
-            _merge(cfg, tomllib.load(fp))
+            raw = tomllib.load(fp)
+        _merge(cfg, raw)
+        overlay_raw = raw.get("overlay")
+        if isinstance(overlay_raw, dict) and "layout_version" not in overlay_raw:
+            if cfg.overlay.position == "bottom-center" or cfg.overlay.offset_y < -150:
+                cfg.overlay.position = "top-right"
+                cfg.overlay.offset_x = 0
+                cfg.overlay.offset_y = 0
+            cfg.overlay.opacity = max(0.78, cfg.overlay.opacity)
+            cfg.overlay.font_size = min(22, cfg.overlay.font_size)
+            cfg.overlay.max_captions = max(4, cfg.overlay.max_captions)
+            cfg.overlay.layout_version = 2
     return cfg
 
 
