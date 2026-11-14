@@ -32,6 +32,12 @@ log = logging.getLogger(__name__)
 
 
 def _create_sparkle_icon() -> QIcon:
+    ico_path = Path(__file__).resolve().parent / "assets" / "game_trans.ico"
+    if ico_path.exists():
+        icon = QIcon(str(ico_path))
+        if not icon.isNull():
+            return icon
+
     size = 64
     pm = QPixmap(size, size)
     pm.fill(Qt.GlobalColor.transparent)
