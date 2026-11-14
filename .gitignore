@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Local config / secrets (API keys live in Windows Credential Manager, never in files)
+.env
+config.toml
+*.local.toml
+
+# Models & caches
+models/
+*.onnx
+*.bin
+
+# Debug audio dumps
+debug_audio/
+
+# IDE
+.vscode/
+.idea/

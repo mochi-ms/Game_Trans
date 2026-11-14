@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Game Trans – UI Mockup</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root {
+    --surface: #131314;
+    --surface-container: #1E1F20;
+    --surface-container-high: #282A2C;
+    --surface-container-highest: #333537;
+    --scrim: rgba(19, 19, 20, 0.72);
+    --outline: #444746;
+    --outline-variant: #333537;
+    --on-surface: #E3E3E3;
+    --on-surface-variant: #C4C7C5;
+    --primary: #A8C7FA;
+    --on-primary: #062E6F;
+    --primary-container: #0842A0;
+    --on-primary-container: #D3E3FD;
+    --success: #6DD58C;
+    --warning: #FFB870;
+    --error: #F2B8B5;
+    --ai-gradient: linear-gradient(90deg, #4285F4 0%, #9B72CB 50%, #D96570 100%);
+    --ease-emph: cubic-bezier(0.2, 0, 0, 1);
+    --font: "Google Sans Flex", "Google Sans", "Pretendard", "Noto Sans KR", "Segoe UI", sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: var(--font);
+    background: #0b0b0c;
+    color: var(--on-surface);
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+  svg.i { width: 20px; height: 20px; fill: currentColor; flex: none; }
+
+  /* ---------- Mockup chrome (tabs) ---------- */
+  .mock-tabs {
+    position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
+    z-index: 100; display: flex; gap: 4px; padding: 4px;
+    background: rgba(30, 31, 32, 0.9); border: 1px solid var(--outline);
+    border-radius: 999px; backdrop-filter: blur(12px);
+  }
+  .mock-tabs button {
+    font: 500 13px var(--font); color: var(--on-surface-variant);
+    background: none; border: 0; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+    transition: background .2s var(--ease-emph), color .2s;
+  }
+  .mock-tabs button.active { background: var(--primary-container); color: var(--on-primary-container); }
+  .view { position: absolute; inset: 0; display: none; }
+  .view.active { display: block; }
+
+  /* ---------- Fake game scene (generic blocky obby, no game assets) ---------- */
+  .game {
+    position: absolute; inset: 0; overflow: hidden;
+    background: linear-gradient(180deg, #5aa9ff 0%, #9fd3ff 55%, #cfe9ff 70%, #7cc36b 70%, #4f9a45 100%);
+  }
+  .sun { position: absolute; top: 80px; right: 220px; width: 120px; height: 120px; border-radius: 50%;
+    background: radial-gradient(circle, #fff7c2 0%, #ffe680 45%, rgba(255,230,128,0) 70%); }
+  .cloud { position: absolute; background: #fff; border-radius: 40px; opacity: .9; }
+  .block { position: absolute; border-radius: 4px; box-shadow: inset 0 -10px 0 rgba(0,0,0,.18), 0 18px 24px rgba(0,0,0,.18); }
+  .avatar { position: absolute; width: 34px; }
+  .avatar .head { width: 34px; height: 34px; background: #ffd34d; border-radius: 6px; }
+  .avatar .body { width: 34px; height: 40px; margin-top: 3px; border-radius: 4px; }
+  .avatar .legs { display: flex; gap: 3px; margin-top: 3px; }
+  .avatar .legs span { flex: 1; height: 36px; background: #2e4a7d; border-radius: 3px; }
+  .nametag { position: absolute; top: -26px; left: 50%; transform: translateX(-50%);
+    font: 600 12px var(--font); color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7); white-space: nowrap; }
+  .speaking-ring { position: absolute; top: -48px; left: 50%; transform: translateX(-50%);
+    width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,.9);
+    display: grid; place-items: center; color: #1a73e8; }
+  .speaking-ring svg { width: 14px; height: 14px; }
+
+  /* ---------- Status pill ---------- */
+  .status-pill {
+    position: absolute; top: 20px; right: 20px; display: flex; align-items: center; gap: 10px;
+    height: 36px; padding: 0 6px 0 14px; background: var(--scrim); backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 999px; font: 500 13px var(--font);
+    color: var(--on-surface);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--success); box-shadow: 0 0 0 0 rgba(109,213,140,.6); animation: breathe 2s infinite; }
+  .dot.paused { background: var(--outline); animation: none; }
+  .dot.warn { background: var(--warning); animation: none; }
+  @keyframes breathe { 0% { box-shadow: 0 0 0 0 rgba(109,213,140,.55); } 70% { box-shadow: 0 0 0 8px rgba(109,213,140,0); } 100% { box-shadow: 0 0 0 0 rgba(109,213,140,0); } }
+  .status-pill .sep { width: 1px; height: 16px; background: var(--outline); }
+  .status-pill .muted { color: var(--on-surface-variant); }
+  .icon-btn {
+    width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; color: var(--on-surface-variant);
+    display: grid; place-items: center; cursor: pointer; transition: background .2s var(--ease-emph), color .2s;
+  }
+  .icon-btn:hover { background: rgba(227,227,227,.08); color: var(--on-surface); }
+  .icon-btn.sm { width: 28px; height: 28px; }
+  .icon-btn.sm svg { width: 18px; height: 18px; }
+
+  /* ---------- Captions ---------- */
+  .captions {
+    position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%);
+    width: min(820px, 80vw); display: flex; flex-direction: column; gap: 8px; align-items: center;
+  }
+  .caption {
+    width: 100%; padding: 12px 18px 14px; border-radius: 20px; background: var(--scrim);
+    backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.06);
+    animation: rise .4s var(--ease-emph) both; transition: opacity .3s;
+  }
+  .caption.old { opacity: .55; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  .caption .meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .lang-chip { font: 600 11px var(--font); letter-spacing: .4px; color: var(--on-primary-container);
+    background: var(--primary-container); padding: 2px 8px; border-radius: 999px; }
+  .caption .orig { font: 400 14px/20px var(--font); color: var(--on-surface-variant); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .caption .trans { font: 600 22px/30px var(--font); color: var(--on-surface); text-shadow: 0 1px 2px rgba(0,0,0,.6); }
+  .shimmer { height: 12px; border-radius: 6px; margin: 8px 0; background: linear-gradient(90deg, rgba(66,133,244,.25), rgba(155,114,203,.9), rgba(217,101,112,.25), rgba(66,133,244,.25));
+    background-size: 300% 100%; animation: shimmer 1.6s linear infinite; }
+  .shimmer.short { width: 60%; }
+  @keyframes shimmer { from { background-position: 100% 0; } to { background-position: -200% 0; } }
+  .listening { display: flex; gap: 4px; align-items: center; height: 22px; }
+  .listening span { width: 4px; border-radius: 2px; background: var(--on-surface-variant); animation: wave 1s ease-in-out infinite; }
+  .listening span:nth-child(2) { animation-delay: .15s; } .listening span:nth-child(3) { animation-delay: .3s; } .listening span:nth-child(4) { animation-delay: .45s; }
+  @keyframes wave { 0%,100% { height: 6px; } 50% { height: 18px; } }
+
+  /* ---------- Composer (input bar + result) ---------- */
+  .composer {
+    position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%);
+    width: 680px; display: flex; flex-direction: column; gap: 10px;
+    transition: opacity .25s var(--ease-emph), transform .4s var(--ease-emph);
+  }
+  .composer.hidden { opacity: 0; pointer-events: none; transform: translate(-50%, -46%); }
+  .phrases { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+  .chip {
+    flex: none; display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px;
+    border-radius: 999px; border: 1px solid var(--outline); background: rgba(30,31,32,.85); backdrop-filter: blur(12px);
+    color: var(--on-surface); font: 500 13px var(--font); cursor: pointer; transition: background .2s var(--ease-emph);
+  }
+  .chip:hover { background: var(--surface-container-high); }
+  .chip kbd { font: 500 11px var(--font); color: var(--on-surface-variant); background: var(--surface-container-highest); border-radius: 4px; padding: 0 5px; }
+  .chip.selected { background: var(--primary-container); border-color: transparent; color: var(--on-primary-container); }
+
+  .result {
+    padding: 18px 20px 14px; border-radius: 20px; background: rgba(30,31,32,.94); backdrop-filter: blur(24px);
+    border: 1px solid rgba(255,255,255,.06); box-shadow: 0 12px 32px rgba(0,0,0,.35);
+    animation: rise .4s var(--ease-emph) both;
+  }
+  .result.hidden { display: none; }
+  .result .top { display: flex; gap: 12px; align-items: flex-start; }
+  .sparkle { width: 24px; height: 24px; flex: none; margin-top: 3px; }
+  .result .tr { font: 600 22px/30px var(--font); color: var(--on-surface); }
+  .result .pron { font: 400 14px/20px var(--font); color: var(--on-surface-variant); margin-top: 2px; }
+  .result .src { font: 400 12px/18px var(--font); color: #8E918F; margin-top: 6px; }
+  .actions { display: flex; align-items: center; gap: 4px; margin-top: 14px; padding-left: 36px; flex-wrap: wrap; }
+  .btn-filled {
+    display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 20px 0 16px; border: 0;
+    border-radius: 999px; background: var(--primary); color: var(--on-primary); font: 500 14px var(--font);
+    cursor: pointer; transition: box-shadow .2s, filter .2s;
+  }
+  .btn-filled:hover { box-shadow: 0 1px 3px rgba(0,0,0,.4); filter: brightness(1.05); }
+  .btn-filled.sending { background: var(--primary-container); color: var(--on-primary-container); }
+  .btn-text { height: 40px; padding: 0 12px; border: 0; border-radius: 999px; background: none; color: var(--primary); font: 500 14px var(--font); cursor: pointer; }
+  .btn-text:hover { background: rgba(168,199,250,.08); }
+  .actions .spacer { flex: 1; }
+  .kbd-hint { font: 400 12px var(--font); color: #8E918F; }
+
+  .input-bar {
+    position: relative; display: flex; align-items: center; gap: 8px; height: 60px; padding: 0 8px 0 18px;
+    border-radius: 999px; background: rgba(30,31,32,.96); backdrop-filter: blur(24px);
+    box-shadow: 0 12px 32px rgba(0,0,0,.35);
+  }
+  .input-bar::before { /* gradient focus ring */
+    content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px;
+    background: var(--outline); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude; pointer-events: none; transition: background .3s;
+  }
+  .input-bar.focus::before { background: var(--ai-gradient); }
+  .input-bar input {
+    flex: 1; height: 100%; border: 0; outline: 0; background: none; color: var(--on-surface);
+    font: 400 16px var(--font);
+  }
+  .input-bar input::placeholder { color: #8E918F; }
+  .send {
+    width: 44px; height: 44px; border-radius: 50%; border: 0; display: grid; place-items: center; cursor: pointer;
+    background: var(--surface-container-high); color: #8E918F; transition: background .2s var(--ease-emph), color .2s;
+  }
+  .send.ready { background: var(--primary); color: var(--on-primary); }
+  .select-chip { height: 36px; padding: 0 8px 0 12px; border: 0; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface-container-high); color: var(--on-surface); font: 500 13px var(--font); cursor: pointer; }
+  .select-chip svg { width: 18px; height: 18px; color: var(--on-surface-variant); }
+  .hint-row { align-self: center; display: flex; justify-content: center; gap: 16px; padding: 6px 14px; border-radius: 999px; background: var(--scrim); backdrop-filter: blur(12px); font: 400 12px var(--font); color: var(--on-surface-variant); }
+  .hint-row kbd { font: 500 11px var(--font); color: var(--on-surface); background: var(--surface-container-highest); border: 1px solid var(--outline); border-radius: 4px; padding: 1px 6px; margin-right: 4px; }
+
+  .toast {
+    position: absolute; left: 24px; bottom: 24px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px;
+    border-radius: 12px; background: #E3E3E3; color: #1F1F1F; font: 500 14px var(--font); box-shadow: 0 6px 18px rgba(0,0,0,.3);
+    opacity: 0; transform: translateY(8px); transition: all .3s var(--ease-emph);
+  }
+  .toast.show { opacity: 1; transform: none; }
+
+  /* ---------- Settings view ---------- */
+  .settings-wrap { position: absolute; inset: 0; display: grid; place-items: center; background: radial-gradient(1200px 600px at 30% 20%, #1b2a44 0%, #0b0b0c 60%); }
+  .window {
+    width: 1080px; height: 700px; border-radius: 12px; overflow: hidden; display: grid; grid-template-rows: 40px 1fr;
+    background: var(--surface); border: 1px solid var(--outline-variant); box-shadow: 0 30px 80px rgba(0,0,0,.6);
+  }
+  .titlebar { display: flex; align-items: center; gap: 10px; padding: 0 0 0 14px; font: 500 13px var(--font); color: var(--on-surface-variant); }
+  .titlebar .sparkle { width: 16px; height: 16px; margin: 0; }
+  .titlebar .wc { margin-left: auto; display: flex; }
+  .titlebar .wc span { width: 46px; height: 40px; display: grid; place-items: center; color: var(--on-surface-variant); }
+  .body { display: grid; grid-template-columns: 96px 1fr; min-height: 0; }
+  .rail { display: flex; flex-direction: column; align-items: center; gap: 12px; padding-top: 12px; }
+  .rail-item { display: flex; flex-direction: column; align-items: center; gap: 4px; font: 500 12px var(--font); color: var(--on-surface-variant); cursor: pointer; }
+  .rail-item .ind { width: 56px; height: 32px; border-radius: 999px; display: grid; place-items: center; transition: background .2s var(--ease-emph); }
+  .rail-item:hover .ind { background: rgba(227,227,227,.08); }
+  .rail-item.active { color: var(--on-surface); }
+  .rail-item.active .ind { background: var(--primary-container); color: var(--on-primary-container); }
+  .content { overflow-y: auto; padding: 28px 40px 40px 16px; scrollbar-width: thin; scrollbar-color: var(--outline) transparent; }
+  .content h1 { font: 400 28px/36px var(--font); margin-bottom: 4px; }
+  .content .sub { color: var(--on-surface-variant); font: 400 14px var(--font); margin-bottom: 24px; }
+  .grid2 { display: grid; grid-template-columns: 1.15fr 1fr; gap: 16px; }
+  .card { background: var(--surface-container); border-radius: 16px; padding: 8px 0; }
+  .card h2 { font: 500 14px var(--font); color: var(--primary); padding: 12px 20px 8px; }
+  .row { display: flex; align-items: center; gap: 16px; min-height: 64px; padding: 8px 20px; }
+  .row + .row { border-top: 1px solid var(--outline-variant); }
+  .row .txt { flex: 1; }
+  .row .t { font: 400 15px var(--font); }
+  .row .d { font: 400 13px var(--font); color: var(--on-surface-variant); margin-top: 2px; }
+  .switch { width: 52px; height: 32px; border-radius: 999px; background: var(--surface-container-highest); border: 2px solid #8E918F; position: relative; cursor: pointer; flex: none; transition: all .2s var(--ease-emph); }
+  .switch::after { content: ""; position: absolute; top: 50%; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: #8E918F; transform: translateY(-50%); transition: all .25s var(--ease-emph); }
+  .switch.on { background: var(--primary); border-color: var(--primary); }
+  .switch.on::after { left: 22px; width: 24px; height: 24px; background: var(--on-primary); }
+  .dropdown { display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 10px 0 14px; border: 1px solid var(--outline); border-radius: 8px; font: 400 14px var(--font); color: var(--on-surface); }
+  .dropdown svg { color: var(--on-surface-variant); }
+  .slider { width: 160px; height: 4px; border-radius: 2px; background: var(--surface-container-highest); position: relative; }
+  .slider .fill { position: absolute; inset: 0 auto 0 0; border-radius: 2px; background: var(--primary); }
+  .slider .knob { position: absolute; top: 50%; width: 4px; height: 28px; border-radius: 2px; background: var(--primary); transform: translate(-50%, -50%); }
+  .usage { padding: 8px 20px 16px; }
+  .usage .big { font: 400 36px/44px var(--font); }
+  .usage .big small { font: 400 15px var(--font); color: var(--on-surface-variant); }
+  .progress { height: 8px; border-radius: 4px; background: var(--surface-container-highest); margin: 12px 0 6px; overflow: hidden; }
+  .progress > div { height: 100%; width: 18%; background: var(--ai-gradient); border-radius: 4px; }
+  .bars { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 18px; }
+  .bars div { flex: 1; border-radius: 4px 4px 0 0; background: var(--surface-container-highest); }
+  .bars div.today { background: var(--primary); }
+  .legend { display: flex; justify-content: space-between; font: 400 11px var(--font); color: #8E918F; margin-top: 6px; }
+  .preview { margin: 4px 20px 16px; height: 150px; border-radius: 12px; position: relative; overflow: hidden;
+    background: linear-gradient(180deg, #5aa9ff 0%, #9fd3ff 60%, #7cc36b 60%, #4f9a45 100%); }
+  .preview .caption { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 86%; padding: 8px 12px 10px; animation: none; }
+  .preview .caption .trans { font-size: 16px; line-height: 22px; }
+  .preview .caption .orig { font-size: 12px; line-height: 16px; }
+  .key { font: 500 12px var(--font); color: var(--on-surface); background: var(--surface-container-highest); border: 1px solid var(--outline); border-bottom-width: 2px; border-radius: 6px; padding: 3px 8px; }
+  .keys { display: flex; gap: 4px; align-items: center; color: var(--on-surface-variant); font-size: 12px; }
+  .status-ok { display: inline-flex; align-items: center; gap: 6px; font: 500 13px var(--font); color: var(--success); }
+  .status-ok .dot { animation: none; }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <linearGradient id="aiGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4285F4" /><stop offset=".5" stop-color="#9B72CB" /><stop offset="1" stop-color="#D96570" />
+    </linearGradient>
+  </defs>
+</svg>
+
+<nav class="mock-tabs">
+  <button data-view="overlay" class="active">게임 오버레이</button>
+  <button data-view="settings">설정 창</button>
+</nav>
+
+<!-- ======================= OVERLAY VIEW ======================= -->
+<section class="view active" id="view-overlay">
+  <div class="game">
+    <div class="sun"></div>
+    <div class="cloud" style="top:110px;left:140px;width:180px;height:46px"></div>
+    <div class="cloud" style="top:90px;left:210px;width:90px;height:60px"></div>
+    <div class="cloud" style="top:170px;left:900px;width:220px;height:50px;opacity:.75"></div>
+    <div class="block" style="left:8%;bottom:26%;width:220px;height:46px;background:#ff5a5f"></div>
+    <div class="block" style="left:28%;bottom:36%;width:140px;height:40px;background:#ffb703"></div>
+    <div class="block" style="left:44%;bottom:44%;width:110px;height:36px;background:#8ecae6"></div>
+    <div class="block" style="left:58%;bottom:50%;width:90px;height:32px;background:#b388ff"></div>
+    <div class="block" style="left:70%;bottom:30%;width:260px;height:52px;background:#06d6a0"></div>
+    <div class="avatar" style="left:calc(8% + 60px);bottom:calc(26% + 46px)">
+      <div class="nametag">me_kr</div>
+      <div class="head"></div><div class="body" style="background:#1a73e8"></div><div class="legs"><span></span><span></span></div>
+    </div>
+    <div class="avatar" style="left:calc(70% + 140px);bottom:calc(30% + 52px)">
+      <div class="speaking-ring"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 2.99-1.34 2.99-3L15 5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></div>
+      <div class="nametag">xX_Builder_Xx</div>
+      <div class="head" style="background:#f4c7a1"></div><div class="body" style="background:#e63946"></div><div class="legs"><span style="background:#222"></span><span style="background:#222"></span></div>
+    </div>
+  </div>
+
+  <!-- Status pill -->
+  <div class="status-pill" id="statusPill">
+    <span class="dot" id="statusDot"></span>
+    <span id="statusText">Live · EN→KO</span>
+    <span class="sep"></span>
+    <span class="muted">12/300 RPM · 오늘 $0.04</span>
+    <button class="icon-btn sm" title="듣기 일시정지 (Ctrl+Shift+L)" id="togglePause"><i data-icon="hearing"></i></button>
+    <button class="icon-btn sm" title="설정" id="openSettings"><i data-icon="settings"></i></button>
+  </div>
+
+  <!-- Composer -->
+  <div class="composer" id="composer">
+    <div class="phrases" id="phrases"></div>
+
+    <div class="result hidden" id="result">
+      <div class="top">
+        <svg class="sparkle" viewBox="0 0 24 24"><path fill="url(#aiGrad)" d="M12 2C12.6 7.2 16.8 11.4 22 12 16.8 12.6 12.6 16.8 12 22 11.4 16.8 7.2 12.6 2 12 7.2 11.4 11.4 7.2 12 2Z"/></svg>
+        <div style="flex:1">
+          <div id="resultBody"></div>
+        </div>
+        <button class="icon-btn sm" title="닫기" id="closeResult"><i data-icon="close"></i></button>
+      </div>
+      <div class="actions" id="resultActions">
+        <button class="btn-filled" id="speakBtn"><i data-icon="voice"></i><span>말하기</span></button>
+        <button class="icon-btn" title="복사 (게임 채팅에 붙여넣기)" id="copyBtn"><i data-icon="copy"></i></button>
+        <button class="icon-btn" title="다시 번역" id="retryBtn"><i data-icon="refresh"></i></button>
+        <span class="spacer"></span>
+        <button class="chip" data-tone="casual">더 캐주얼</button>
+        <button class="chip" data-tone="polite">더 공손</button>
+      </div>
+    </div>
+
+    <div class="input-bar focus" id="inputBar">
+      <svg class="sparkle" viewBox="0 0 24 24" style="margin:0"><path fill="url(#aiGrad)" d="M12 2C12.6 7.2 16.8 11.4 22 12 16.8 12.6 12.6 16.8 12 22 11.4 16.8 7.2 12.6 2 12 7.2 11.4 11.4 7.2 12 2Z"/></svg>
+      <input id="input" placeholder="하고 싶은 말을 입력하세요…" autocomplete="off" />
+      <button class="select-chip" title="말투">🎮 캐주얼<i data-icon="down"></i></button>
+      <button class="select-chip" title="상대 언어 (자동 감지: 영어)"><i data-icon="translate" style="color:var(--primary)"></i>EN<i data-icon="down"></i></button>
+      <button class="send" id="sendBtn" title="번역 (Enter)"><i data-icon="up"></i></button>
+    </div>
+
+    <div class="hint-row">
+      <span><kbd>Enter</kbd>번역</span>
+      <span><kbd>Ctrl+Enter</kbd>번역 후 바로 말하기</span>
+      <span><kbd>Esc</kbd>게임으로 돌아가기</span>
+    </div>
+  </div>
+
+  <!-- Captions -->
+  <div class="captions" id="captions"></div>
+
+  <div class="toast" id="toast"><i data-icon="copy"></i><span id="toastText">복사했어요</span></div>
+</section>
+
+<!-- ======================= SETTINGS VIEW ======================= -->
+<section class="view" id="view-settings">
+  <div class="settings-wrap">
+    <div class="window">
+      <div class="titlebar">
+        <svg class="sparkle" viewBox="0 0 24 24"><path fill="url(#aiGrad)" d="M12 2C12.6 7.2 16.8 11.4 22 12 16.8 12.6 12.6 16.8 12 22 11.4 16.8 7.2 12.6 2 12 7.2 11.4 11.4 7.2 12 2Z"/></svg>
+        Game Trans 설정
+        <div class="wc"><span>—</span><span>☐</span><span>✕</span></div>
+      </div>
+      <div class="body">
+        <nav class="rail">
+          <div class="rail-item active"><div class="ind"><i data-icon="tune"></i></div>일반</div>
+          <div class="rail-item"><div class="ind"><i data-icon="headphones"></i></div>오디오</div>
+          <div class="rail-item"><div class="ind"><i data-icon="translate"></i></div>AI·번역</div>
+          <div class="rail-item"><div class="ind"><i data-icon="layers"></i></div>오버레이</div>
+          <div class="rail-item"><div class="ind"><i data-icon="voice"></i></div>음성 송출</div>
+          <div class="rail-item"><div class="ind"><i data-icon="keyboard"></i></div>단축키</div>
+          <div class="rail-item"><div class="ind"><i data-icon="bolt"></i></div>빠른 문구</div>
+          <div class="rail-item"><div class="ind"><i data-icon="chart"></i></div>사용량</div>
+        </nav>
+        <main class="content">
+          <h1>일반</h1>
+          <p class="sub">자주 쓰는 설정을 한곳에 모았어요.</p>
+          <div class="grid2">
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="card">
+                <h2>연결</h2>
+                <div class="row">
+                  <div class="txt"><div class="t">Google AI Studio API 키</div><div class="d">AIza••••••••••••••••Qx4 · Windows 자격 증명 관리자에 저장됨</div></div>
+                  <span class="status-ok"><span class="dot"></span>연결됨</span>
+                </div>
+                <div class="row">
+                  <div class="txt"><div class="t">모델</div><div class="d">듣기·말하기 번역에 사용</div></div>
+                  <div class="dropdown">gemini-3.5-flash-lite<i data-icon="down"></i></div>
+                </div>
+              </div>
+              <div class="card">
+                <h2>번역</h2>
+                <div class="row">
+                  <div class="txt"><div class="t">내 언어</div><div class="d">자막이 이 언어로 표시돼요</div></div>
+                  <div class="dropdown">한국어<i data-icon="down"></i></div>
+                </div>
+                <div class="row">
+                  <div class="txt"><div class="t">상대 언어 자동 감지</div><div class="d">최근 자막에서 가장 많이 들린 언어로 내 말을 번역</div></div>
+                  <div class="switch on"></div>
+                </div>
+                <div class="row">
+                  <div class="txt"><div class="t">한글 발음 표시</div><div class="d">번역문을 직접 읽을 수 있게 발음을 함께 보여줘요</div></div>
+                  <div class="switch on"></div>
+                </div>
+                <div class="row">
+                  <div class="txt"><div class="t">한도 초과 시 로컬 모드로 전환</div><div class="d">faster-whisper로 받아쓰고 텍스트만 번역</div></div>
+                  <div class="switch"></div>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px">
+              <div class="card">
+                <h2>이번 달 사용량</h2>
+                <div class="usage">
+                  <div class="big">$1.62 <small>/ 예산 $9.00</small></div>
+                  <div class="progress"><div></div></div>
+                  <div class="legend"><span>Pro 크레딧 $10 중 예상 사용</span><span>18%</span></div>
+                  <div class="bars">
+                    <div style="height:30%"></div><div style="height:55%"></div><div style="height:20%"></div><div style="height:72%"></div>
+                    <div style="height:40%"></div><div style="height:88%"></div><div style="height:64%"></div><div style="height:35%"></div>
+                    <div style="height:50%"></div><div style="height:78%"></div><div style="height:26%"></div><div class="today" style="height:46%"></div>
+                  </div>
+                  <div class="legend"><span>11/3</span><span>오늘</span></div>
+                </div>
+              </div>
+              <div class="card">
+                <h2>자막 미리보기</h2>
+                <div class="preview">
+                  <div class="caption">
+                    <div class="orig">nice jump! wait for me at the checkpoint</div>
+                    <div class="trans">점프 잘했다! 체크포인트에서 기다려줘</div>
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="txt"><div class="t">글자 크기</div></div>
+                  <div class="slider"><div class="fill" style="width:40%"></div><div class="knob" style="left:40%"></div></div>
+                </div>
+                <div class="row">
+                  <div class="txt"><div class="t">입력 바 열기</div></div>
+                  <div class="keys"><span class="key">Ctrl</span>+<span class="key">Shift</span>+<span class="key">Space</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // ---- Icons (Material Icons paths, Apache 2.0) ----
+  const ICONS = {
+    up: "M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z",
+    copy: "M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z",
+    refresh: "M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z",
+    voice: "M9 13c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4zm7.76-9.64l-1.68 1.69c.84 1.18.84 2.71 0 3.89l1.68 1.69c2.02-2.02 2.02-5.07 0-7.27zM20.07 2l-1.63 1.63c2.77 3.02 2.77 7.56 0 10.74L20.07 16c3.9-3.89 3.91-9.95 0-14z",
+    settings: "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 00.12-.61l-1.92-3.32a.488.488 0 00-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 00-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 00-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z",
+    hearing: "M17 20c-.29 0-.56-.06-.76-.15-.71-.37-1.21-.88-1.71-2.38-.51-1.56-1.47-2.29-2.39-3-.79-.61-1.61-1.24-2.32-2.53C9.29 10.98 9 9.93 9 9c0-2.8 2.2-5 5-5s5 2.2 5 5h2c0-3.93-3.07-7-7-7S7 5.07 7 9c0 1.26.38 2.65 1.07 3.9.91 1.65 1.98 2.48 2.85 3.15.81.62 1.39 1.07 1.71 2.05.6 1.82 1.37 2.84 2.73 3.55.51.23 1.07.35 1.64.35 2.21 0 4-1.79 4-4h-2c0 1.1-.9 2-2 2zM7.64 2.64L6.22 1.22C4.23 3.21 3 5.96 3 9s1.23 5.79 3.22 7.78l1.41-1.41C6.01 13.74 5 11.49 5 9s1.01-4.74 2.64-6.36zM11.5 9a2.5 2.5 0 005 0 2.5 2.5 0 00-5 0z",
+    close: "M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z",
+    down: "M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z",
+    translate: "M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v1.99h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12zm-2.62 7l1.62-4.33L19.12 17h-3.24z",
+    tune: "M3 17v2h6v-2H3zM3 5v2h10V5H3zm10 16v-2h8v-2h-8v-2h-2v6h2zM7 9v2H3v2h4v2h2V9H7zm14 4v-2H11v2h10zm-6-4h2V7h4V5h-4V3h-2v6z",
+    headphones: "M12 3a9 9 0 00-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7a9 9 0 00-9-9z",
+    layers: "M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z",
+    keyboard: "M20 5H4c-1.1 0-1.99.9-1.99 2L2 17c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm-9 3h2v2h-2V8zm0 3h2v2h-2v-2zM8 8h2v2H8V8zm0 3h2v2H8v-2zm-1 2H5v-2h2v2zm0-3H5V8h2v2zm9 7H8v-2h8v2zm0-4h-2v-2h2v2zm0-3h-2V8h2v2zm3 3h-2v-2h2v2zm0-3h-2V8h2v2z",
+    bolt: "M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z",
+    chart: "M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z",
+  };
+  function renderIcons(root = document) {
+    root.querySelectorAll("i[data-icon]").forEach(el => {
+      const svg = `<svg class="i" viewBox="0 0 24 24" style="${el.getAttribute("style") || ""}"><path d="${ICONS[el.dataset.icon]}"/></svg>`;
+      el.outerHTML = svg;
+    });
+  }
+  renderIcons();
+
+  // ---- Tabs ----
+  const tabs = document.querySelectorAll(".mock-tabs button");
+  function show(view) {
+    tabs.forEach(t => t.classList.toggle("active", t.dataset.view === view));
+    document.querySelectorAll(".view").forEach(v => v.classList.toggle("active", v.id === "view-" + view));
+    history.replaceState(null, "", "#" + view);
+  }
+  tabs.forEach(t => t.addEventListener("click", () => show(t.dataset.view)));
+  document.getElementById("openSettings").addEventListener("click", () => show("settings"));
+  if (location.hash === "#settings") show("settings");
+
+  // ---- Quick phrases ----
+  const PHRASES = [
+    ["👋", "안녕!", "Hi!", "하이!"],
+    ["🙏", "고마워", "Thanks!", "땡스!"],
+    ["🏃", "따라와", "Follow me!", "팔로우 미!"],
+    ["🤝", "트레이드 할래?", "Wanna trade?", "워너 트레이드?"],
+    ["⏳", "잠깐만", "Wait a sec", "웨잇 어 섹"],
+    ["🎉", "잘했어!", "Nice one!", "나이스 원!"],
+  ];
+  const phrasesEl = document.getElementById("phrases");
+  PHRASES.forEach(([emoji, ko, en, pron], i) => {
+    const b = document.createElement("button");
+    b.className = "chip";
+    b.innerHTML = `${emoji} ${ko} <kbd>${i + 1}</kbd>`;
+    b.onclick = () => showResult(ko, en, pron, true);
+    phrasesEl.appendChild(b);
+  });
+
+  // ---- Composer behaviour (mock translations) ----
+  const MOCK = {
+    "따라와 다음 스테이지 가자": ["Follow me, let's go to the next stage!", "팔로우 미, 렛츠 고 투 더 넥스트 스테이지!"],
+    "체크포인트에서 기다려줘": ["Wait for me at the checkpoint!", "웨잇 포 미 앳 더 체크포인트!"],
+  };
+  const input = document.getElementById("input");
+  const sendBtn = document.getElementById("sendBtn");
+  const inputBar = document.getElementById("inputBar");
+  const result = document.getElementById("result");
+  const resultBody = document.getElementById("resultBody");
+  const resultActions = document.getElementById("resultActions");
+  const speakBtn = document.getElementById("speakBtn");
+
+  input.addEventListener("input", () => sendBtn.classList.toggle("ready", input.value.trim().length > 0));
+  input.addEventListener("focus", () => inputBar.classList.add("focus"));
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") translate(e.ctrlKey);
+    if (e.key === "Escape") toggleComposer(false);
+  });
+  sendBtn.addEventListener("click", () => translate(false));
+  document.getElementById("closeResult").onclick = () => result.classList.add("hidden");
+
+  function translate(speakAfter) {
+    const text = input.value.trim();
+    if (!text) return;
+    const [en, pron] = MOCK[text.replace(/[!?.]/g, "")] || ["Let's team up and clear this obby together!", "렛츠 팀 업 앤 클리어 디스 오비 투게더!"];
+    result.classList.remove("hidden");
+    resultActions.style.visibility = "hidden";
+    resultBody.innerHTML = `<div class="shimmer"></div><div class="shimmer short"></div>`;
+    setTimeout(() => showResult(text, en, pron, speakAfter), 700);
+    input.value = ""; sendBtn.classList.remove("ready");
+  }
+
+  function showResult(ko, en, pron, speakAfter) {
+    result.classList.remove("hidden");
+    resultActions.style.visibility = "visible";
+    resultBody.innerHTML = `<div class="tr">${en}</div><div class="pron">${pron}</div><div class="src">원문 · ${ko}</div>`;
+    result.style.animation = "none"; void result.offsetWidth; result.style.animation = "";
+    if (speakAfter) speak();
+  }
+
+  let speakTimer;
+  function speak() {
+    clearTimeout(speakTimer);
+    speakBtn.classList.add("sending");
+    speakBtn.querySelector("span").innerHTML = `<span class="listening" style="height:16px;display:inline-flex"><span style="background:currentColor"></span><span style="background:currentColor"></span><span style="background:currentColor"></span></span> 송출 중… 눌러서 중지`;
+    speakTimer = setTimeout(stopSpeak, 2600);
+  }
+  function stopSpeak() {
+    clearTimeout(speakTimer);
+    speakBtn.classList.remove("sending");
+    speakBtn.querySelector("span").textContent = "말하기";
+  }
+  speakBtn.onclick = () => speakBtn.classList.contains("sending") ? stopSpeak() : speak();
+
+  const toast = document.getElementById("toast");
+  function showToast(msg) {
+    document.getElementById("toastText").textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 1800);
+  }
+  document.getElementById("copyBtn").onclick = () => {
+    const t = resultBody.querySelector(".tr");
+    if (t) navigator.clipboard?.writeText(t.textContent)?.catch(() => {});
+    showToast("복사했어요 · 게임 채팅에 붙여넣으세요");
+  };
+  document.getElementById("retryBtn").onclick = () => {
+    const src = resultBody.querySelector(".src");
+    if (src) { input.value = src.textContent.replace("원문 · ", ""); translate(false); }
+  };
+  document.querySelectorAll("[data-tone]").forEach(c => c.onclick = () => {
+    const casual = c.dataset.tone === "casual";
+    showResult("(말투 변경)", casual ? "Yo follow me, next stage!" : "Could you please follow me to the next stage?",
+      casual ? "요 팔로우 미, 넥스트 스테이지!" : "쿠쥬 플리즈 팔로우 미 투 더 넥스트 스테이지?", false);
+  });
+
+  const composer = document.getElementById("composer");
+  function toggleComposer(force) {
+    const open = force ?? composer.classList.contains("hidden");
+    composer.classList.toggle("hidden", !open);
+    if (open) input.focus();
+  }
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey && e.shiftKey && e.code === "Space") { e.preventDefault(); toggleComposer(); }
+    if (e.ctrlKey && e.shiftKey && e.code === "KeyL") { e.preventDefault(); togglePause(); }
+  });
+
+  // ---- Status pill ----
+  let paused = false;
+  function togglePause() {
+    paused = !paused;
+    document.getElementById("statusDot").className = "dot" + (paused ? " paused" : "");
+    document.getElementById("statusText").textContent = paused ? "일시정지 · Ctrl+Shift+L" : "Live · EN→KO";
+  }
+  document.getElementById("togglePause").onclick = togglePause;
+
+  // ---- Live captions simulation ----
+  const LINES = [
+    ["EN", "yo can you help me get to the next stage", "야 다음 스테이지 가는 거 좀 도와줄 수 있어?"],
+    ["EN", "nice jump! wait for me at the checkpoint", "점프 잘했다! 체크포인트에서 기다려줘"],
+    ["EN", "bro the lava part is so hard lol", "야 용암 구간 진짜 어렵다 ㅋㅋ"],
+    ["ES", "¿alguien quiere hacer un trade?", "누구 트레이드 할 사람?"],
+  ];
+  const captions = document.getElementById("captions");
+  let li = 0;
+  function cycle() {
+    if (paused) return setTimeout(cycle, 1000);
+    const [lang, orig, trans] = LINES[li++ % LINES.length];
+    const card = document.createElement("div");
+    card.className = "caption";
+    card.innerHTML = `<div class="listening"><span></span><span></span><span></span><span></span></div>`;
+    captions.appendChild(card);
+    [...captions.children].forEach((c, i, all) => c.classList.toggle("old", i < all.length - 1));
+    while (captions.children.length > 2) captions.firstElementChild.remove();
+    setTimeout(() => { card.innerHTML = `<div class="meta"><span class="lang-chip">${lang} → KO</span></div><div class="shimmer"></div><div class="shimmer short"></div>`; }, 900);
+    setTimeout(() => { card.innerHTML = `<div class="meta"><span class="lang-chip">${lang} → KO</span><span class="orig">${orig}</span></div><div class="trans">${trans}</div>`; }, 1900);
+    setTimeout(cycle, 5200);
+  }
+  // Initial state for screenshot: one finished caption + one in progress
+  captions.innerHTML = `
+    <div class="caption old"><div class="meta"><span class="lang-chip">EN → KO</span><span class="orig">nice jump! wait for me at the checkpoint</span></div><div class="trans">점프 잘했다! 체크포인트에서 기다려줘</div></div>
+    <div class="caption"><div class="meta"><span class="lang-chip">EN → KO</span><span class="orig">yo can you help me get to the next stage</span></div><div class="trans">야 다음 스테이지 가는 거 좀 도와줄 수 있어?</div></div>`;
+  showResult("따라와 다음 스테이지 가자", MOCK["따라와 다음 스테이지 가자"][0], MOCK["따라와 다음 스테이지 가자"][1], false);
+  input.value = "체크포인트에서 기다려줘"; sendBtn.classList.add("ready");
+  if (!location.search.includes("static")) setTimeout(cycle, 4000);
+</script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+# Game Trans 설정 예시
+# 실제 설정 파일 위치: %APPDATA%\GameTrans\config.toml
+# ※ API 키는 이 파일에 넣지 마세요. 앱이 Windows 자격 증명 관리자에 저장합니다.
+
+[general]
+my_language = "ko"              # 자막/내 입력 언어
+partner_language = "auto"       # "auto" = 최근 자막에서 감지된 언어, 또는 "en", "ja" ...
+start_with_windows = false
+auto_listen_on_game_start = true
+
+[ai]
+model = "gemini-3.5-flash-lite"
+mode = "cloud"                  # "cloud" | "local"
+rpm_limit = 10                  # 무료 티어 ≈ 10, 크레딧 연결(Tier 1) 후 300 등으로 상향
+fallback_to_local_on_quota = false
+show_pronunciation = true
+tone = "casual"                 # "casual" | "neutral" | "polite"
+context_lines = 3
+
+[ai.pricing]                    # USD per 1M tokens – 단가 변경 시 여기만 수정
+input_per_mtok = 0.30
+output_per_mtok = 2.50
+
+[budget]
+monthly_budget_usd = 9.0
+warn_ratio = 0.8
+
+[audio]
+capture = "process"             # "process" | "device"
+target_processes = ["RobloxPlayerBeta.exe"]
+speech_threshold = 0.5
+min_speech_ms = 300
+silence_end_ms = 450
+max_segment_s = 8.0
+pre_roll_ms = 200
+bgm_suppression = false
+
+[voice_out]
+enabled = true
+engine = "edge"                 # "edge" | "gemini" | "sapi"
+output_device = "CABLE Input"
+monitor_device = ""             # 비우면 모니터링 안 함
+voice = "en-US-AndrewNeural"
+rate = "+0%"
+
+[overlay]
+position = "bottom-center"
+font_size = 22
+opacity = 0.72
+caption_duration_s = 6
+max_captions = 3
+show_original = true
+reduce_motion = false
+
+[hotkeys]
+toggle_input = "Ctrl+Shift+Space"
+repeat_last = "Ctrl+Shift+S"
+toggle_listen = "Ctrl+Shift+L"
+history = "Ctrl+Shift+H"
+edit_overlay = "Ctrl+Shift+E"
